@@ -38,7 +38,7 @@
     });
     n.data.forEach((x) => notes.set(x.slot_id, x));
     if (rows[0]) $("#collected").textContent = rows[0].collected;
-    initControls(); renderHalls(); renderPattern(); render(); renderCmp();
+    initControls(); renderPattern(); render(); renderCmp();   // renderHalls 는 render() 가 필터 결과로 호출
     setSync("ok", "실시간 공유 중");
     sb.channel("notes").on("postgres_changes", { event: "*", schema: "public", table: "chapel_slot_notes" }, (p) => {
       if (p.eventType === "DELETE") notes.delete(p.old.slot_id);
@@ -71,15 +71,30 @@
   }
 
   // ---------- summary ----------
-  function renderHalls() {
+  // 필터를 건 결과(view)를 그대로 받아 홀별 요약을 다시 계산한다 — 필터와 항상 같은 숫자를 보게
+  const payable = (x) => x.disc ?? x.total;   // 혜택일은 10% 할인 추정가가 실제 낼 돈에 가깝다
+
+  function renderHalls(view) {
+    const list = view || rows;
     $("#halls").innerHTML = ["lamer", "laforet"].map((h) => {
-      const r = rows.filter((x) => x.hall === h); if (!r.length) return "";
-      const min = r.reduce((a, b) => (a.total < b.total ? a : b));
-      const pers = r.map((x) => x.per); const gs = [...new Set(r.map((x) => x.guar))].sort((a, b) => a - b);
+      const all = rows.filter((x) => x.hall === h);
+      const r = list.filter((x) => x.hall === h);
+      const gloss = h === "lamer" ? "La Mer · 바다" : "La Forêt · 숲";
+      if (!all.length) return "";
+
+      if (!r.length) return `<article class="hall ${CLS[h]} off">
+        <div class="name">${HALL[h]}</div><div class="gloss">${gloss}</div>
+        <div class="count num">0<small>조건에 맞는 슬롯 없음</small></div>
+        <dl><div><dt>이 홀 전체</dt><dd class="num">${all.length}건</dd></div></dl></article>`;
+
+      const narrowed = r.length !== all.length;
+      const min = r.reduce((a, b) => (payable(a) < payable(b) ? a : b));
+      const pers = r.map((x) => x.per);
+      const gs = [...new Set(r.map((x) => x.guar))].sort((a, b) => a - b);
       const times = [...new Set(r.map((x) => x.time))].sort().join(" · ");
-      return `<article class="hall ${CLS[h]}"><div class="name">${HALL[h]}</div><div class="gloss">${h === "lamer" ? "La Mer · 바다" : "La Forêt · 숲"} · ${times}</div>
-      <div class="count num">${r.length}<small>계약 가능 슬롯</small></div>
-      <dl><div><dt>최저 대관료+식대</dt><dd class="num">${man(min.total)}</dd></div>
+      return `<article class="hall ${CLS[h]}"><div class="name">${HALL[h]}</div><div class="gloss">${gloss} · ${times}</div>
+      <div class="count num">${r.length}<small>${narrowed ? `조건에 맞는 슬롯 · 전체 ${all.length}` : "계약 가능 슬롯"}</small></div>
+      <dl><div><dt>최저 실구매가</dt><dd class="num">${man(payable(min))}<span class="hint">${min.date.slice(5).replace("-", "/")} (${min.dow}) ${min.time}${min.promo ? " · 10%" : ""}</span></dd></div>
       <div><dt>1인 식대 범위</dt><dd class="num">${won(Math.min(...pers))}~${won(Math.max(...pers))}</dd></div>
       <div><dt>보증인원</dt><dd class="num">${gs[0]}~${gs.at(-1)}명</dd></div></dl></article>`;
     }).join("");
@@ -126,6 +141,7 @@
     const k = st.sort;
     r.sort((a, b) => { let va = a[k], vb = b[k]; if (k === "date") { va = a.date + a.time; vb = b.date + b.time; } if (k === "disc") { va = a.disc ?? a.total; vb = b.disc ?? b.total; } return (va > vb ? 1 : va < vb ? -1 : 0) * st.dir || (a.date + a.time).localeCompare(b.date + b.time); });
     document.querySelectorAll("#tbl th[data-sort]").forEach((th) => { th.textContent = th.textContent.replace(/ [▲▼]$/, ""); if (th.dataset.sort === k) th.textContent += st.dir > 0 ? " ▲" : " ▼"; });
+    renderHalls(r);
     const nm = r.filter((x) => x.hall === "lamer").length;
     const starred = rows.filter((x) => note(x.id).starred).length;
     $("#count").innerHTML = `<b>${r.length}</b>건 표시 · 라메르 ${nm} / 라포레 ${r.length - nm} · ★ 후보 ${starred}`;
