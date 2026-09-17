@@ -300,14 +300,26 @@
   function safeRenderCmp() { if ($("#cmpbody").contains(document.activeElement) && document.activeElement.matches("input,textarea")) { cmpPending = true; updateCalc(); } else renderCmp(); }
   $("#cmpbody").addEventListener("focusout", () => setTimeout(() => { if (cmpPending && !$("#cmpbody").contains(document.activeElement)) { cmpPending = false; renderCmp(); } }, 50));
 
+  const openCards = new Set();   // 폰에서 펼쳐둔 슬롯 카드
+
   function renderCmp() {
     const box = $("#cmpbody"); const P = picks();
     $("#cmpcount").textContent = `${P.length}/${MAX_PICKS}`;
     if (!P.length) { box.innerHTML = `<div class="empty">위 목록에서 <b>비교</b>를 눌러 슬롯을 추가하세요. 예: 같은 토요일의 라메르 12:30과 라포레 13:00.</div>`; return; }
+    box.innerHTML = cmpTable(P) + cmpCards(P);
+    updateCalc();
+  }
+
+  // 입력칸 — 표와 카드가 같이 떠 있으므로 id 앞에 접두사를 붙여 겹치지 않게 한다
+  const numInput = (x, key, val, ph, step = 10000, pre = "") =>
+    `<input type="number" inputmode="numeric" id="${pre}in-${x.id}-${key}" data-id="${x.id}" data-k="${key}" min="0" step="${step}" placeholder="${ph}" value="${val ?? ""}">`;
+
+  // ---------- 넓은 화면: 지금까지의 표 ----------
+  function cmpTable(P) {
     const cols = P.length + 1;
     const col = (f) => P.map((x) => `<td class="num">${f(x, note(x.id))}</td>`).join("");
-    const num = (x, key, val, ph, step = 10000) => `<input type="number" inputmode="numeric" id="in-${x.id}-${key}" data-id="${x.id}" data-k="${key}" min="0" step="${step}" placeholder="${ph}" value="${val ?? ""}">`;
-    box.innerHTML = `<div class="cmpbox"><table class="cmp"><thead><tr><th>항목</th>${P.map((x) => `<th><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span><div class="num" style="color:var(--ink);font-size:13px;margin-top:4px">${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}</div><button class="rm" data-id="${x.id}">빼기</button></th>`).join("")}</tr></thead><tbody>
+    const num = (x, k, v, ph, step) => numInput(x, k, v, ph, step);
+    return `<div class="cmpbox"><table class="cmp"><thead><tr><th>항목</th>${P.map((x) => `<th><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span><div class="num" style="color:var(--ink);font-size:13px;margin-top:4px">${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}</div><button class="rm" data-id="${x.id}">빼기</button></th>`).join("")}</tr></thead><tbody>
     <tr class="grp"><td colspan="${cols}">기본 정보</td></tr>
     <tr><td>후보</td>${P.map((x) => `<td><button class="star" data-id="${x.id}" aria-pressed="${note(x.id).starred}" aria-label="후보 표시">★</button></td>`).join("")}</tr>
     <tr><td>혜택</td>${col((x) => (x.promo ? '<span class="tag P">계약가 10% 할인</span>' : "–"))}</tr>
@@ -316,31 +328,94 @@
     <tr><td>보증인원</td>${col((x) => x.guar + "명")}</tr>
     <tr><td>예상 하객 <span class="hint">보증인원보다 많으면 그만큼 청구</span></td>${P.map((x) => `<td>${num(x, "guests", note(x.id).expected_guests, x.guar, 10)}</td>`).join("")}</tr>
     <tr><td>1인 식대</td>${col((x) => won(x.per))}</tr>
-    <tr class="calc"><td>식대 합계 <span class="hint">1인 식대 × 청구 인원</span></td>${P.map((x) => `<td class="num" id="c-meal-${x.id}"></td>`).join("")}</tr>
+    <tr class="calc"><td>식대 합계 <span class="hint">1인 식대 × 청구 인원</span></td>${P.map((x) => `<td class="num" data-calc="meal-${x.id}"></td>`).join("")}</tr>
     <tr class="grp"><td colspan="${cols}">비용</td></tr>
     <tr><td>대관료</td>${col((x) => won(x.rental))}</tr>
     ${EXTRAS.map(([k, l]) => `<tr><td>${l}</td>${P.map((x) => `<td>${num(x, k, (note(x.id).extras || {})[k], 0)}</td>`).join("")}</tr>`).join("")}
     <tr><td>할인 <span class="hint">비워두면 혜택일은 (대관료+식대)×10% 자동</span></td>${P.map((x) => `<td>${num(x, "disc", note(x.id).discount_override, x.promo ? Math.round(x.total * 0.1) : 0)}</td>`).join("")}</tr>
     <tr class="grp"><td colspan="${cols}">합계</td></tr>
-    <tr class="calc"><td>부대상품 합계</td>${P.map((x) => `<td class="num" id="c-add-${x.id}"></td>`).join("")}</tr>
-    <tr class="calc total"><td>총 예상 비용</td>${P.map((x) => `<td class="num" id="c-total-${x.id}"></td>`).join("")}</tr>
-    <tr class="calc"><td>1인당 환산 <span class="hint">총 예상 비용 ÷ 청구 인원</span></td>${P.map((x) => `<td class="num" id="c-per-${x.id}"></td>`).join("")}</tr>
+    <tr class="calc"><td>부대상품 합계</td>${P.map((x) => `<td class="num" data-calc="add-${x.id}"></td>`).join("")}</tr>
+    <tr class="calc total"><td>총 예상 비용</td>${P.map((x) => `<td class="num" data-calc="total-${x.id}"></td>`).join("")}</tr>
+    <tr class="calc"><td>1인당 환산 <span class="hint">총 예상 비용 ÷ 청구 인원</span></td>${P.map((x) => `<td class="num" data-calc="per-${x.id}"></td>`).join("")}</tr>
     <tr class="grp"><td colspan="${cols}">메모 · 웨딩 DB</td></tr>
     <tr><td>상담 메모</td>${P.map((x) => `<td><textarea id="in-${x.id}-memo" data-id="${x.id}" data-k="memo" placeholder="예: 폐백실 무료, 꽃장식 업그레이드 필수">${esc(note(x.id).memo)}</textarea></td>`).join("")}</tr>
     <tr><td>견적으로 보내기 <span class="hint">웨딩 DB 견적 비교에 새 견적으로 등록</span></td>${P.map((x) => { const c = note(x.id).sent_quote_code; return `<td>${c ? `<span class="sent">✓ ${esc(c)} 등록됨</span>` : `<button class="sendbtn" data-id="${x.id}">견적으로 보내기</button>`}</td>`; }).join("")}</tr>
     </tbody></table></div>`;
-    updateCalc();
   }
+
+  // ---------- 폰: 순위 요약 + 슬롯 카드 ----------
+  function cmpCards(P) {
+    const C = P.map(calc);
+    const maxT = Math.max(...C.map((c) => c.total));
+    const minT = Math.min(...C.map((c) => c.total));
+    const ranked = P.map((x, i) => ({ x, c: C[i] })).sort((a, b) => a.c.total - b.c.total);
+
+    const rank = `<div class="rankcard">
+      <div class="rank-h">총 예상 비용 순 <span>${P.length}건</span></div>
+      ${ranked.map((r, i) => `<button type="button" class="rrow ${i === 0 ? "top" : ""}" data-goto="${r.x.id}">
+        <span class="no">${i + 1}</span>
+        <span class="rnm"><span class="tag ${CLS[r.x.hall]}">${HALL[r.x.hall]}</span>${r.x.date.slice(5).replace("-", "/")} (${r.x.dow}) ${r.x.time}</span>
+        <span class="track"><i style="width:${Math.round((r.c.total / maxT) * 100)}%"></i></span>
+        <span class="amt">${man(r.c.total)}</span></button>`).join("")}
+      ${P.length > 1 ? `<div class="rank-f">최저 <b>${man(minT)}</b> · 최고와 <b>${man(maxT - minT)}</b> 차이</div>` : ""}
+    </div>`;
+
+    const cards = P.map((x, i) => {
+      const n = note(x.id); const c = C[i]; const open = openCards.has(x.id);
+      const num = (k, v, ph, step) => numInput(x, k, v, ph, step, "m-");
+      return `<article class="slotcard ${P.length > 1 && c.total === minT ? "best" : ""}" id="card-${x.id}">
+        <div class="sc-h">
+          <button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button>
+          <span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>
+          <span class="sc-when">${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}</span>
+          ${x.promo ? '<span class="tag P">10%</span>' : ""}
+        </div>
+        <div class="sc-tot">
+          <span class="lb">총 예상 비용</span>
+          <b class="num" data-calc="ctotal-${x.id}"></b>
+          <em data-calc="delta-${x.id}"></em>
+        </div>
+        <dl class="sc-kv">
+          <div><dt>1인당 환산</dt><dd class="num" data-calc="per-${x.id}"></dd></div>
+          <div><dt>대관료</dt><dd class="num">${won(x.rental)}</dd></div>
+          <div><dt>식대 합계</dt><dd class="num" data-calc="meal-${x.id}"></dd></div>
+          <div><dt>부대상품</dt><dd class="num" data-calc="add-${x.id}"></dd></div>
+          <div><dt>할인</dt><dd class="num" data-calc="disc-${x.id}"></dd></div>
+          <div><dt>보증 / 1인 식대</dt><dd class="num">${x.guar}명 · ${won(x.per)}</dd></div>
+        </dl>
+        <button type="button" class="sc-more" data-toggle="${x.id}">${open ? "입력 접기 ▲" : "부대상품 입력 · 메모 ▼"}</button>
+        <div class="sc-edit" ${open ? "" : "hidden"}>
+          <label class="sc-f"><span>예상 하객 <em>보증보다 많으면 그만큼 청구</em></span>${num("guests", n.expected_guests, x.guar, 10)}</label>
+          ${EXTRAS.map(([k, l]) => `<label class="sc-f"><span>${l}</span>${num(k, (n.extras || {})[k], 0)}</label>`).join("")}
+          <label class="sc-f"><span>할인 <em>비우면 혜택일 10% 자동</em></span>${num("disc", n.discount_override, x.promo ? Math.round(x.total * 0.1) : 0)}</label>
+          <label class="sc-f col"><span>상담 메모</span><textarea id="m-in-${x.id}-memo" data-id="${x.id}" data-k="memo" placeholder="예: 폐백실 무료, 꽃장식 업그레이드 필수">${esc(n.memo)}</textarea></label>
+          <div class="sc-acts">
+            <button type="button" class="rm" data-id="${x.id}">비교에서 빼기</button>
+            ${n.sent_quote_code ? `<span class="sent">✓ ${esc(n.sent_quote_code)} 등록됨</span>` : `<button type="button" class="sendbtn" data-id="${x.id}">견적으로 보내기</button>`}
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+
+    return `<div class="cmpcards">${rank}${cards}</div>`;
+  }
+
   function updateCalc() {
-    const P = picks(); if (!P.length) return; const C = P.map(calc); const minT = Math.min(...C.map((c) => c.total));
+    const P = picks(); if (!P.length) return;
+    const C = P.map(calc); const minT = Math.min(...C.map((c) => c.total));
+    const set = (key, html) => document.querySelectorAll(`[data-calc="${key}"]`).forEach((el) => (el.innerHTML = html));
     P.forEach((x, i) => {
-      const c = C[i]; const set = (k, h) => { const el = document.getElementById(`c-${k}-${x.id}`); if (el) el.innerHTML = h; };
-      set("meal", `${won(c.meal)}<span class="hint">${c.billed}명 청구</span>`);
-      set("add", won(c.add));
-      set("total", `<span class="${P.length > 1 && c.total === minT ? "best" : ""}">${won(c.total)}</span>${P.length > 1 ? (c.total === minT ? '<span class="hint">가장 낮음</span>' : `<span class="hint">최저 대비 +${man(c.total - minT)}</span>`) : ""}`);
-      set("per", won(c.perHead));
+      const c = C[i]; const lowest = P.length > 1 && c.total === minT;
+      set(`meal-${x.id}`, `${won(c.meal)}<span class="hint">${c.billed}명 청구</span>`);
+      set(`add-${x.id}`, won(c.add));
+      set(`disc-${x.id}`, c.disc ? `−${won(c.disc)}` : "–");
+      set(`total-${x.id}`, `<span class="${lowest ? "best" : ""}">${won(c.total)}</span>${P.length > 1 ? (lowest ? '<span class="hint">가장 낮음</span>' : `<span class="hint">최저 대비 +${man(c.total - minT)}</span>`) : ""}`);
+      set(`ctotal-${x.id}`, won(c.total));
+      set(`delta-${x.id}`, P.length > 1 ? (lowest ? "최저" : `+${man(c.total - minT)}`) : "");
+      set(`per-${x.id}`, won(c.perHead));
     });
   }
+
   $("#cmpbody").addEventListener("input", (e) => {
     const t = e.target; const id = t.dataset.id, k = t.dataset.k; if (!k) return;
     const n = note(id); const v = t.value === "" ? null : t.value;
@@ -352,7 +427,18 @@
     saveNote(id, patch, 600); updateCalc();
   });
   $("#cmpbody").addEventListener("click", (e) => {
-    const rm = e.target.closest(".rm"); if (rm) return togglePick(rm.dataset.id);
+    const go = e.target.closest("[data-goto]");
+    if (go) { document.getElementById("card-" + go.dataset.goto)?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    const tg = e.target.closest("[data-toggle]");
+    if (tg) {
+      const id = tg.dataset.toggle;
+      openCards.has(id) ? openCards.delete(id) : openCards.add(id);
+      const card = document.getElementById("card-" + id);
+      card.querySelector(".sc-edit").hidden = !openCards.has(id);
+      tg.textContent = openCards.has(id) ? "입력 접기 ▲" : "부대상품 입력 · 메모 ▼";
+      return;
+    }
+    const rm = e.target.closest(".rm"); if (rm) { openCards.delete(rm.dataset.id); return togglePick(rm.dataset.id); }
     const s = e.target.closest(".star"); if (s) { saveNote(s.dataset.id, { starred: !note(s.dataset.id).starred }); render(); renderCmp(); return; }
     const send = e.target.closest(".sendbtn"); if (send) sendQuote(send.dataset.id, send);
   });
