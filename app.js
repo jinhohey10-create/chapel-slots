@@ -41,21 +41,31 @@
     initControls(); renderHalls(); renderPattern(); render(); renderCmp();
     setSync("ok", "실시간 공유 중");
     sb.channel("notes").on("postgres_changes", { event: "*", schema: "public", table: "chapel_slot_notes" }, (p) => {
-      if (p.eventType === "DELETE") notes.delete(p.old.slot_id); else notes.set(p.new.slot_id, p.new);
+      if (p.eventType === "DELETE") notes.delete(p.old.slot_id);
+      else notes.set(p.new.slot_id, { ...p.new, ...(pending[p.new.slot_id] || {}) }); // 저장 대기 중인 내 수정은 유지
       render(); safeRenderCmp();
+      if (sheetId && (p.new?.slot_id === sheetId || p.old?.slot_id === sheetId)) syncSheet();
     }).subscribe((status) => { if (status === "SUBSCRIBED") setSync("ok", "실시간 공유 중"); else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setSync("err", "실시간 연결 끊김 · 새로고침"); });
   }
 
   const saveTimers = {};
+  const pending = {}; // 아직 서버로 못 보낸 내 수정 — 실시간 수신이 덮어쓰지 못하게 따로 들고 있는다
   function saveNote(id, patch, delay = 0) {
-    const cur = { ...note(id), ...patch, updated_at: new Date().toISOString() };
-    notes.set(id, cur);
+    notes.set(id, { ...note(id), ...patch, updated_at: new Date().toISOString() });
+    pending[id] = { ...(pending[id] || {}), ...patch };
     clearTimeout(saveTimers[id]);
     const run = async () => {
       setSync("", "저장 중");
-      const { slot_id, picked, pick_order, expected_guests, extras, discount_override, starred, memo, sent_quote_code, updated_at } = notes.get(id);
-      const { error } = await sb.from("chapel_slot_notes").upsert({ slot_id, picked, pick_order, expected_guests, extras, discount_override, starred, memo, sent_quote_code, updated_at });
-      if (error) { setSync("err", "저장 실패"); toast("저장하지 못했어요: " + error.message); } else setSync("ok", "저장됨 · 실시간 공유 중");
+      const mine = pending[id] || {};
+      delete pending[id];
+      const m = { ...note(id), ...mine };
+      const row = { slot_id: id, picked: m.picked, pick_order: m.pick_order, expected_guests: m.expected_guests,
+        extras: m.extras, discount_override: m.discount_override, starred: m.starred, memo: m.memo,
+        sent_quote_code: m.sent_quote_code, updated_at: new Date().toISOString() };
+      notes.set(id, { ...m, updated_at: row.updated_at });
+      const { error } = await sb.from("chapel_slot_notes").upsert(row);
+      if (error) { pending[id] = { ...mine, ...(pending[id] || {}) }; setSync("err", "저장 실패"); toast("저장하지 못했어요: " + error.message); }
+      else setSync("ok", "저장됨 · 실시간 공유 중");
     };
     if (delay) saveTimers[id] = setTimeout(run, delay); else return run();
   }
@@ -85,14 +95,18 @@
     ["time", "guar", "max"].forEach((k) => ($("#f-" + k).onchange = (e) => { st[k] = e.target.value; render(); }));
     $("#f-promo").onchange = (e) => { st.promo = e.target.checked; render(); };
     $("#f-star").onchange = (e) => { st.star = e.target.checked; render(); };
+    $("#f-sort").onchange = (e) => { const [k, d] = e.target.value.split("|"); st.sort = k; st.dir = +d; render(); };
     document.querySelectorAll("#tbl th[data-sort]").forEach((th) => (th.onclick = () => { const k = th.dataset.sort; st.dir = st.sort === k ? -st.dir : 1; st.sort = k; render(); }));
     $("#tbl tbody").onclick = onTableClick;
+    $("#cards").onclick = onTableClick;
   }
   function syncControls() {
     document.querySelectorAll("#f-hall button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === st.hall));
     document.querySelectorAll("#f-month button").forEach((b) => b.setAttribute("aria-pressed", st.month.includes(b.dataset.v)));
     document.querySelectorAll("#f-dow button").forEach((b) => b.setAttribute("aria-pressed", st.dow.includes(b.dataset.v)));
     $("#f-time").value = st.time; $("#f-guar").value = st.guar; $("#f-max").value = st.max; $("#f-promo").checked = st.promo; $("#f-star").checked = st.star;
+    const sortSel = $("#f-sort"); const want = `${st.sort}|${st.dir}`;
+    sortSel.value = [...sortSel.options].some((o) => o.value === want) ? want : "";
   }
   function togglePick(id) {
     const n = note(id);
@@ -102,7 +116,8 @@
   }
   function onTableClick(e) {
     const p = e.target.closest(".pickbtn"); if (p) return togglePick(p.dataset.id);
-    const s = e.target.closest(".star"); if (s) { saveNote(s.dataset.id, { starred: !note(s.dataset.id).starred }); render(); renderCmp(); }
+    const s = e.target.closest(".star"); if (s) { saveNote(s.dataset.id, { starred: !note(s.dataset.id).starred }); render(); renderCmp(); return; }
+    const m = e.target.closest(".memobtn"); if (m) return openSheet(m.dataset.id);
   }
   function render() {
     if (!rows.length) return;
@@ -120,9 +135,78 @@
       <td class="num">${won(x.rental)}</td><td class="num">${won(x.meal)}</td><td class="num">${x.guar}명</td><td class="num">${won(x.per)}</td>
       <td class="num ${x.promo ? "strike" : ""}">${won(x.total)}</td><td class="num">${x.promo ? `<span class="tag P">10%</span> ${won(x.disc)}` : "–"}</td>
       <td class="num heart ${x.likes >= 3 ? "hot" : ""}">♥ ${x.likes}</td>
-      <td class="l"><button class="pickbtn" data-id="${x.id}" aria-pressed="${n.picked}">${n.picked ? "✓ 비교중" : "비교"}</button></td></tr>`; }).join("")
+      <td class="l"><button class="pickbtn" data-id="${x.id}" aria-pressed="${n.picked}">${n.picked ? "✓ 비교중" : "비교"}</button>
+        <button class="memobtn ${n.memo ? "has" : ""}" data-id="${x.id}" aria-label="메모">✎</button></td></tr>`; }).join("")
       : `<tr><td colspan="13" class="empty">조건에 맞는 슬롯이 없어요. 필터를 하나 풀어보세요.</td></tr>`;
+    renderCards(r);
   }
+
+  // 투어 현장에서 폰으로 볼 화면 — 표 대신 카드
+  function renderCards(r) {
+    $("#cards").innerHTML = r.length ? r.map((x) => { const n = note(x.id); return `
+      <article class="card ${n.picked ? "picked" : ""}">
+        <div class="c-top">
+          <span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>
+          ${x.promo ? '<span class="tag P">10% 혜택일</span>' : ""}
+          ${n.sent_quote_code ? `<span class="sent">${esc(n.sent_quote_code)}</span>` : ""}
+          <button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button>
+        </div>
+        <div class="c-when">${x.date.replace(/-/g, ".")} <span class="dow-${x.dow}">(${x.dow})</span><span class="t">${x.time}</span></div>
+        <dl class="c-money">
+          <div><dt>대관료</dt><dd>${won(x.rental)}</dd></div>
+          <div><dt>식대</dt><dd>${won(x.meal)}</dd></div>
+          <div><dt>보증인원</dt><dd>${x.guar}명</dd></div>
+          <div><dt>1인 식대</dt><dd>${won(x.per)}</dd></div>
+        </dl>
+        <div class="c-sum">
+          <span class="lbl">대관료+식대</span>
+          <b class="${x.promo ? "strike" : ""}">${won(x.total)}</b>
+          ${x.promo ? `<b>${won(x.disc)}</b>` : ""}
+        </div>
+        <div class="c-foot">
+          <span class="heart ${x.likes >= 3 ? "hot" : ""}">♥ ${x.likes}</span>
+          <button class="pickbtn" data-id="${x.id}" aria-pressed="${n.picked}">${n.picked ? "✓ 비교중" : "비교"}</button>
+          <button class="memobtn ${n.memo ? "has" : ""}" data-id="${x.id}">${n.memo ? "메모 보기" : "메모"}</button>
+          ${n.memo ? `<span class="memoprev">✎ ${esc(n.memo)}</span>` : ""}
+        </div>
+      </article>`; }).join("")
+      : `<div class="empty">조건에 맞는 슬롯이 없어요. 필터를 하나 풀어보세요.</div>`;
+  }
+
+  // ---------- 슬롯 시트 (★ · 메모 · 비교를 한 화면에서) ----------
+  let sheetId = null;
+  function openSheet(id) {
+    const x = rows.find((r) => r.id === id); if (!x) return;
+    const n = note(id);
+    sheetId = id;
+    $("#sheet-title").innerHTML = `<span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}`;
+    $("#sheet-money").innerHTML = `
+      <div><dt>대관료</dt><dd>${won(x.rental)}</dd></div>
+      <div><dt>식대</dt><dd>${won(x.meal)}</dd></div>
+      <div><dt>보증인원</dt><dd>${x.guar}명</dd></div>
+      <div><dt>1인 식대</dt><dd>${won(x.per)}</dd></div>
+      <div class="wide"><dt>${x.promo ? "10% 할인 추정가" : "대관료+식대"}</dt><dd>${won(x.disc ?? x.total)}</dd></div>`;
+    $("#sheet-memo").value = n.memo || "";
+    syncSheet();
+    $("#sheet").showModal();
+  }
+  function syncSheet() {
+    if (!sheetId) return;
+    const n = note(sheetId);
+    $("#sheet-star").setAttribute("aria-pressed", String(!!n.starred));
+    $("#sheet-star").textContent = n.starred ? "★ 후보임" : "★ 후보";
+    $("#sheet-pick").setAttribute("aria-pressed", String(!!n.picked));
+    $("#sheet-pick").textContent = n.picked ? "✓ 비교 중" : "비교에 추가";
+  }
+  $("#sheet-close").onclick = () => $("#sheet").close();
+  $("#sheet").addEventListener("close", () => { sheetId = null; render(); });
+  $("#sheet").addEventListener("click", (e) => { if (e.target.id === "sheet") $("#sheet").close(); });
+  $("#sheet-star").onclick = () => { saveNote(sheetId, { starred: !note(sheetId).starred }); syncSheet(); renderCmp(); };
+  $("#sheet-pick").onclick = () => { const id = sheetId; togglePick(id); sheetId = id; syncSheet(); };
+  $("#sheet-memo").addEventListener("input", (e) => {
+    if (!sheetId) return;
+    saveNote(sheetId, { memo: e.target.value.trim() || null }, 600);
+  });
 
   // ---------- compare ----------
   function calc(x) {

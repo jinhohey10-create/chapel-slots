@@ -35,10 +35,18 @@
       <div class="field"><span>보증인원</span><select id="f-guar"><option value="all">전체</option></select></div>
       <div class="field"><span>총액 상한 (대관료+식대)</span><select id="f-max">
         <option value="0">제한 없음</option><option value="25000000">2,500만</option><option value="30000000">3,000만</option><option value="35000000">3,500만</option><option value="40000000">4,000만</option><option value="45000000">4,500만</option></select></div>
+      <div class="field"><span>정렬</span><select id="f-sort">
+        <option value="date|1">예식일 빠른순</option>
+        <option value="disc|1">실구매가 낮은순</option>
+        <option value="total|1">대관료+식대 낮은순</option>
+        <option value="per|1">1인 식대 낮은순</option>
+        <option value="guar|1">보증인원 적은순</option>
+        <option value="likes|-1">찜 많은순</option></select></div>
       <label class="check"><input type="checkbox" id="f-promo"> 10% 할인 혜택만</label>
       <label class="check"><input type="checkbox" id="f-star"> ★ 후보만</label>
     </div>
     <div class="resultbar"><span id="count" class="num"></span><span class="muted">열 제목을 누르면 정렬 · <b>비교</b>로 아래 견적 비교에 추가</span></div>
+    <div class="cards" id="cards"></div>
     <div class="tablebox">
       <table id="tbl">
         <thead><tr>
@@ -73,6 +81,23 @@
     </ul>
   </section>
 </div>
+<dialog id="sheet" aria-labelledby="sheet-title">
+  <div class="sheet">
+    <header>
+      <div id="sheet-title"></div>
+      <button type="button" class="sheet-x" id="sheet-close" aria-label="닫기">✕</button>
+    </header>
+    <dl class="sheet-money" id="sheet-money"></dl>
+    <div class="sheet-acts">
+      <button type="button" id="sheet-star" aria-pressed="false">★ 후보</button>
+      <button type="button" id="sheet-pick" aria-pressed="false">비교에 추가</button>
+    </div>
+    <label class="sheet-lbl" for="sheet-memo">상담 메모</label>
+    <textarea id="sheet-memo" placeholder="예: 폐백실 무료 / 꽃장식 업그레이드 필수 / 주차 2시간"></textarea>
+    <p class="sheet-hint">적는 즉시 저장되고 함께 쓰는 사람 화면에도 바로 보여요.</p>
+  </div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
