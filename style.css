@@ -17,12 +17,13 @@
 *{box-sizing:border-box}
 /* display 를 지정한 요소에는 기본 [hidden] 이 먹지 않는다 — 전역으로 못박아 둔다 */
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:flex;flex-direction:column;gap:22px}
 h1{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.01em;text-wrap:balance}
 h2{font-size:16px;margin:0;font-weight:700}
 .sub{color:var(--ink2);margin:6px 0 0;max-width:70ch}
 .num{font-variant-numeric:tabular-nums}
+a{color:var(--mer)}
 .muted{color:var(--ink2)}
 .eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:600}
 /* hall summary */
@@ -50,7 +51,7 @@ h2{font-size:16px;margin:0;font-weight:700}
 .seg button.F[aria-pressed="true"]{background:var(--foret);border-color:var(--foret);color:#fff}
 select,input[type=number]{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 input[type=number]{width:100%}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 label.check{display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
 .resultbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
 /* 요일 × 시간 격자 */
@@ -92,7 +93,7 @@ tbody tr.picked{background:var(--sel)}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px}
 .tag.M{background:var(--mer-soft);color:var(--mer)} .tag.F{background:var(--foret-soft);color:var(--foret)}
 .tag.P{background:var(--promo-soft);color:var(--promo)}
-.dow-토{color:var(--ink);font-weight:600}.dow-월{color:var(--promo)}
+.dow-토{color:var(--ink);font-weight:600}.dow-월,.dow-수,.dow-목{color:var(--promo)}
 .strike{color:var(--ink2)}
 .pickbtn{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer}
 .pickbtn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}

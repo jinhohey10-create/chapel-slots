@@ -16,10 +16,10 @@
   const notes = new Map(); // slot_id -> note
   // off: 보고 싶지 않은 "요일|시간" 조합. 요일 필터와 시간 필터를 따로 두면
   // 일요일 17시를 빼려다 토요일 17시까지 사라져서, 조합 단위로 끈다.
-  const st = Object.assign({ hall: "all", month: ["08", "09", "10", "11"], off: [], guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, store.get("nh-filter", {}));
+  const st = Object.assign({ hall: "all", month: ["05", "06", "07", "08", "09", "10", "11"], off: [], guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, store.get("nh-filter", {}));
   if (!Array.isArray(st.off)) st.off = [];
   delete st.dow; delete st.time;   // 예전 저장값 정리
-  const DOW_ORDER = ["토", "일", "월"];
+  const DOW_ORDER = ["토", "일", "월", "수", "목"];
   const offKey = (d, t) => d + "|" + t;
   const isOff = (d, t) => st.off.includes(offKey(d, t));
 
@@ -49,10 +49,9 @@
     if (s.error || n.error) { setSync("err", "불러오기 실패"); $("#halls").innerHTML = `<div class="loading">데이터를 불러오지 못했어요: ${esc((s.error || n.error).message)}</div>`; return; }
     rows = s.data.map((x) => {
       const total = x.hall_rental_fee + x.meal_total;
-      return { id: x.id, hall: x.hall, date: x.ceremony_date, dow: x.day_of_week, time: x.ceremony_time.slice(0, 5), rental: x.hall_rental_fee, meal: x.meal_total, guar: x.guaranteed_guests, per: x.meal_price_per_person, likes: x.likes, promo: x.promo_10pct, total, disc: x.promo_10pct ? Math.round(total * 0.9) : null, collected: x.collected_at };
+      return { id: x.id, hall: x.hall, date: x.ceremony_date, dow: x.day_of_week, time: x.ceremony_time.slice(0, 5), rental: x.hall_rental_fee, meal: x.meal_total, guar: x.guaranteed_guests, per: x.meal_price_per_person, likes: x.likes, promo: x.promo_10pct, label: x.promo_label, total, disc: x.promo_10pct ? Math.round(total * 0.9) : null, collected: x.collected_at };
     });
     n.data.forEach((x) => notes.set(x.slot_id, x));
-    if (rows[0]) $("#collected").textContent = rows[0].collected;
     initControls(); renderPattern(); render(); renderCmp();   // renderHalls 는 render() 가 필터 결과로 호출
     setSync("ok", "실시간 공유 중");
     sb.channel("notes").on("postgres_changes", { event: "*", schema: "public", table: "chapel_slot_notes" }, (p) => {
@@ -109,7 +108,7 @@
       const times = [...new Set(r.map((x) => x.time))].sort().join(" · ");
       return `<article class="hall ${CLS[h]}"><div class="name">${HALL[h]}</div><div class="gloss">${gloss} · ${times}</div>
       <div class="count num">${r.length}<small>${narrowed ? `조건에 맞는 슬롯 · 전체 ${all.length}` : "계약 가능 슬롯"}</small></div>
-      <dl><div><dt>최저 실구매가</dt><dd class="num">${man(payable(min))}<span class="hint">${min.date.slice(5).replace("-", "/")} (${min.dow}) ${min.time}${min.promo ? " · 10%" : ""}</span></dd></div>
+      <dl><div><dt>최저 실구매가</dt><dd class="num">${man(payable(min))}<span class="hint">${min.date.slice(5).replace("-", "/")} (${min.dow}) ${min.time}${min.promo ? " · 10%" : min.label ? " · 특별할인" : ""}</span></dd></div>
       <div><dt>1인 식대 범위</dt><dd class="num">${won(Math.min(...pers))}~${won(Math.max(...pers))}</dd></div>
       <div><dt>보증인원</dt><dd class="num">${gs[0]}~${gs.at(-1)}명</dd></div></dl></article>`;
     }).join("");
@@ -212,7 +211,7 @@
       <td class="l"><button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button></td>
       <td class="l"><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>${n.sent_quote_code ? ` <span class="sent">${esc(n.sent_quote_code)}</span>` : ""}</td><td class="l num">${x.date.replace(/-/g, ".")}</td><td class="l dow-${x.dow}">${x.dow}</td><td class="l num">${x.time}</td>
       <td class="num">${won(x.rental)}</td><td class="num">${won(x.meal)}</td><td class="num">${x.guar}명</td><td class="num">${won(x.per)}</td>
-      <td class="num ${x.promo ? "strike" : ""}">${won(x.total)}</td><td class="num">${x.promo ? `<span class="tag P">10%</span> ${won(x.disc)}` : "–"}</td>
+      <td class="num ${x.promo ? "strike" : ""}">${won(x.total)}</td><td class="num">${x.promo ? `<span class="tag P">10%</span> ${won(x.disc)}` : x.label ? '<span class="tag P">특별할인 적용가</span>' : "–"}</td>
       <td class="num heart ${x.likes >= 3 ? "hot" : ""}">♥ ${x.likes}</td>
       <td class="l"><button class="pickbtn" data-id="${x.id}" aria-pressed="${n.picked}">${n.picked ? "✓ 비교중" : "비교"}</button>
         <button class="memobtn ${n.memo ? "has" : ""}" data-id="${x.id}" aria-label="메모">✎</button></td></tr>`; }).join("")
@@ -226,7 +225,7 @@
       <article class="card ${n.picked ? "picked" : ""}">
         <div class="c-top">
           <span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>
-          ${x.promo ? '<span class="tag P">10% 혜택일</span>' : ""}
+          ${x.promo ? '<span class="tag P">10% 혜택일</span>' : x.label ? '<span class="tag P">특별할인 적용가</span>' : ""}
           ${n.sent_quote_code ? `<span class="sent">${esc(n.sent_quote_code)}</span>` : ""}
           <button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button>
         </div>
@@ -264,7 +263,7 @@
       <div><dt>식대</dt><dd>${won(x.meal)}</dd></div>
       <div><dt>보증인원</dt><dd>${x.guar}명</dd></div>
       <div><dt>1인 식대</dt><dd>${won(x.per)}</dd></div>
-      <div class="wide"><dt>${x.promo ? "10% 할인 추정가" : "대관료+식대"}</dt><dd>${won(x.disc ?? x.total)}</dd></div>`;
+      <div class="wide"><dt>${x.promo ? "10% 할인 추정가" : x.label ? "대관료+식대 (특별할인 적용가)" : "대관료+식대"}</dt><dd>${won(x.disc ?? x.total)}</dd></div>`;
     $("#sheet-memo").value = n.memo || "";
     syncSheet();
     $("#sheet").showModal();
@@ -322,7 +321,7 @@
     return `<div class="cmpbox"><table class="cmp"><thead><tr><th>항목</th>${P.map((x) => `<th><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span><div class="num" style="color:var(--ink);font-size:13px;margin-top:4px">${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}</div><button class="rm" data-id="${x.id}">빼기</button></th>`).join("")}</tr></thead><tbody>
     <tr class="grp"><td colspan="${cols}">기본 정보</td></tr>
     <tr><td>후보</td>${P.map((x) => `<td><button class="star" data-id="${x.id}" aria-pressed="${note(x.id).starred}" aria-label="후보 표시">★</button></td>`).join("")}</tr>
-    <tr><td>혜택</td>${col((x) => (x.promo ? '<span class="tag P">계약가 10% 할인</span>' : "–"))}</tr>
+    <tr><td>혜택</td>${col((x) => (x.promo ? '<span class="tag P">계약가 10% 할인</span>' : x.label ? `<span class="tag P">${esc(x.label)}</span>` : "–"))}</tr>
     <tr><td>찜 (사이트)</td>${col((x) => "♥ " + x.likes)}</tr>
     <tr class="grp"><td colspan="${cols}">인원 · 식대</td></tr>
     <tr><td>보증인원</td>${col((x) => x.guar + "명")}</tr>
@@ -368,7 +367,7 @@
           <button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button>
           <span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>
           <span class="sc-when">${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}</span>
-          ${x.promo ? '<span class="tag P">10%</span>' : ""}
+          ${x.promo ? '<span class="tag P">10%</span>' : x.label ? '<span class="tag P">특별할인</span>' : ""}
         </div>
         <div class="sc-tot">
           <span class="lb">총 예상 비용</span>
@@ -461,7 +460,7 @@
         quote_code: code, venue_id: venue.id, ceremony_date: x.date, ceremony_year: +x.date.slice(0, 4), ceremony_month: m,
         season: m >= 9 && m <= 11 ? "가을" : m >= 6 ? "여름" : m >= 3 ? "봄" : "겨울", day_of_week: x.dow, ceremony_time: x.time + ":00",
         guaranteed_guests: x.guar, expected_guests: c.billed, meal_price_per_person: x.per, hall_rental_fee: x.rental,
-        discount_amount: c.disc, expected_total: c.total, promo_notes: x.promo ? "특정일 계약 혜택 │ 계약가 10% 할인 (추정 적용)" : "",
+        discount_amount: c.disc, expected_total: c.total, promo_notes: x.promo ? "특정일 계약 혜택 │ 계약가 10% 할인 (추정 적용)" : (x.label || ""),
         source_url: "https://thechapel.co.kr/ceremony/ceremonyResultList",
         memo: [`슬롯 비교에서 등록 (${x.id}, 수집 ${x.collected}, 사이트 찜 ${x.likes})`, n.memo].filter(Boolean).join("\n"),
       };
@@ -503,6 +502,7 @@
       "대관료+식대": x.total,
       "10% 혜택일": x.promo ? "예" : "",
       "할인 추정가": x.promo ? x.disc : "",
+      "특별할인": x.label || "",
       "찜(사이트)": x.likes,
       "★ 후보": n.starred ? "★" : "",
       "비교중": n.picked ? "예" : "",
@@ -525,7 +525,7 @@
     const row = (label, f) => out.push([label, ...P.map((x, i) => f(x, note(x.id), C[i]))]);
     out.push(["■ 기본 정보"]);
     row("예식일", (x) => x.date); row("요일", (x) => x.dow); row("시간", (x) => x.time);
-    row("혜택", (x) => (x.promo ? "계약가 10% 할인" : ""));
+    row("혜택", (x) => (x.promo ? "계약가 10% 할인" : x.label || ""));
     row("찜(사이트)", (x) => x.likes);
     row("★ 후보", (x, n) => (n.starred ? "★" : ""));
     out.push(["■ 인원 · 식대"]);
@@ -552,8 +552,8 @@
 
   function patternList() {
     const g = {};
-    rows.forEach((x) => { const season = x.date.slice(5, 7) === "08" ? "8월" : x.promo ? "10월 혜택일" : "9~11월"; const key = [x.hall, season, x.dow, x.time, x.rental, x.guar, x.per].join("|"); g[key] = (g[key] || 0) + 1; });
-    const order = { "8월": 0, "9~11월": 1, "10월 혜택일": 2 }, dw = { 토: 0, 일: 1, 월: 2 };
+    rows.forEach((x) => { const m = x.date.slice(5, 7); const season = x.label ? "5월 특별할인일" : x.promo ? "10월 혜택일" : m <= "07" ? m.replace(/^0/, "") + "월" : m === "08" ? "8월" : "9~11월"; const key = [x.hall, season, x.dow, x.time, x.rental, x.guar, x.per].join("|"); g[key] = (g[key] || 0) + 1; });
+    const order = { "5월": 0, "5월 특별할인일": 1, "6월": 2, "7월": 3, "8월": 4, "9~11월": 5, "10월 혜택일": 6 }, dw = { 토: 0, 일: 1, 월: 2, 수: 3, 목: 4 };
     return Object.entries(g).map(([k, n]) => { const [h, s, d, t, r, gu, p] = k.split("|"); return { h, s, d, t, r: +r, gu: +gu, p: +p, n }; })
       .sort((a, b) => (a.h === b.h ? 0 : a.h === "lamer" ? -1 : 1) || order[a.s] - order[b.s] || dw[a.d] - dw[b.d] || a.t.localeCompare(b.t) || b.n - a.n)
       .map((x) => ({ "홀": HALL[x.h], "시즌": x.s, "요일": x.d, "시간": x.t, "대관료": x.r, "보증인원": x.gu, "1인 식대": x.p, "대관료+식대": x.r + x.p * x.gu, "슬롯 수": x.n }));
@@ -606,8 +606,8 @@
   // ---------- pattern ----------
   function renderPattern() {
     const g = {};
-    rows.forEach((x) => { const season = x.date.slice(5, 7) === "08" ? "8월" : x.promo ? "10월 혜택일" : "9~11월"; const key = [x.hall, season, x.dow, x.time, x.rental, x.guar, x.per].join("|"); g[key] = (g[key] || 0) + 1; });
-    const order = { "8월": 0, "9~11월": 1, "10월 혜택일": 2 }, dw = { 토: 0, 일: 1, 월: 2 };
+    rows.forEach((x) => { const m = x.date.slice(5, 7); const season = x.label ? "5월 특별할인일" : x.promo ? "10월 혜택일" : m <= "07" ? m.replace(/^0/, "") + "월" : m === "08" ? "8월" : "9~11월"; const key = [x.hall, season, x.dow, x.time, x.rental, x.guar, x.per].join("|"); g[key] = (g[key] || 0) + 1; });
+    const order = { "5월": 0, "5월 특별할인일": 1, "6월": 2, "7월": 3, "8월": 4, "9~11월": 5, "10월 혜택일": 6 }, dw = { 토: 0, 일: 1, 월: 2, 수: 3, 목: 4 };
     const list = Object.entries(g).map(([k, n]) => { const [h, s, d, t, r, gu, p] = k.split("|"); return { h, s, d, t, r: +r, gu: +gu, p: +p, n }; });
     list.sort((a, b) => (a.h === b.h ? 0 : a.h === "lamer" ? -1 : 1) || order[a.s] - order[b.s] || dw[a.d] - dw[b.d] || a.t.localeCompare(b.t) || b.n - a.n);
     $("#pattern tbody").innerHTML = list.map((x) => `<tr><td class="l"><span class="tag ${CLS[x.h]}">${HALL[x.h]}</span></td><td class="l">${x.s}</td><td class="l">${x.d}</td><td class="l num">${x.t}</td><td class="num">${won(x.r)}</td><td class="num">${x.gu}명</td><td class="num">${won(x.p)}</td><td class="num">${won(x.r + x.p * x.gu)}</td><td class="num">${x.n}</td></tr>`).join("");
