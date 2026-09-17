@@ -14,7 +14,14 @@
 
   let rows = [];
   const notes = new Map(); // slot_id -> note
-  const st = Object.assign({ hall: "all", month: ["08", "09", "10", "11"], dow: ["토", "일", "월"], time: "all", guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, store.get("nh-filter", {}));
+  // off: 보고 싶지 않은 "요일|시간" 조합. 요일 필터와 시간 필터를 따로 두면
+  // 일요일 17시를 빼려다 토요일 17시까지 사라져서, 조합 단위로 끈다.
+  const st = Object.assign({ hall: "all", month: ["08", "09", "10", "11"], off: [], guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, store.get("nh-filter", {}));
+  if (!Array.isArray(st.off)) st.off = [];
+  delete st.dow; delete st.time;   // 예전 저장값 정리
+  const DOW_ORDER = ["토", "일", "월"];
+  const offKey = (d, t) => d + "|" + t;
+  const isOff = (d, t) => st.off.includes(offKey(d, t));
 
   $("#weddingdb").href = CFG.WEDDING_DB_URL;
 
@@ -22,6 +29,14 @@
   function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
 
   const note = (id) => notes.get(id) || { slot_id: id, picked: false, pick_order: null, expected_guests: null, extras: {}, discount_override: null, starred: false, memo: null, sent_quote_code: null };
+  const passesFilter = (x) =>
+    (st.hall === "all" || x.hall === st.hall) &&
+    st.month.includes(x.date.slice(5, 7)) &&
+    !isOff(x.dow, x.time) &&
+    (st.guar === "all" || x.guar === +st.guar) &&
+    (st.max === "0" || (x.disc ?? x.total) <= +st.max) &&
+    (!st.promo || x.promo) &&
+    (!st.star || note(x.id).starred);
   const picks = () => rows.filter((r) => note(r.id).picked).sort((a, b) => (note(a.id).pick_order || 0) - (note(b.id).pick_order || 0));
 
   // ---------- data ----------
@@ -101,13 +116,61 @@
   }
 
   // ---------- filters & table ----------
+  // 지금 홀 선택에서 실제로 존재하는 (요일, 시간) 조합만 다룬다
+  const hallRows = () => rows.filter((x) => st.hall === "all" || x.hall === st.hall);
+  const dtTimes = () => [...new Set(hallRows().map((x) => x.time))].sort();
+  const dtDays = () => DOW_ORDER.filter((d) => rows.some((x) => x.dow === d));
+  const dtExists = (d, t) => hallRows().some((x) => x.dow === d && x.time === t);
+
+  function setOff(keys, off) {
+    const s = new Set(st.off);
+    keys.forEach((k) => (off ? s.add(k) : s.delete(k)));
+    st.off = [...s];
+  }
+
+  function renderMatrix() {
+    const times = dtTimes(), days = dtDays();
+    $("#dowtime").innerHTML = `<table class="dtm"><thead><tr><th></th>${
+      times.map((t) => `<th><button type="button" class="dth" data-col="${t}">${t}</button></th>`).join("")
+    }</tr></thead><tbody>${days.map((d) => `<tr>
+      <th><button type="button" class="dth" data-row="${d}">${d}${d === "월" ? "<small>대체공휴일</small>" : ""}</button></th>
+      ${times.map((t) => dtExists(d, t)
+        ? `<td><button type="button" class="dtc ${isOff(d, t) ? "off" : "on"}" data-cell="${offKey(d, t)}"
+             aria-pressed="${!isOff(d, t)}" aria-label="${d}요일 ${t} ${isOff(d, t) ? "제외됨" : "포함"}"></button></td>`
+        : `<td><span class="dtc none" aria-hidden="true"></span></td>`).join("")}
+    </tr>`).join("")}</tbody></table>`;
+  }
+
   function initControls() {
-    $("#f-time").insertAdjacentHTML("beforeend", [...new Set(rows.map((r) => r.time))].sort().map((t) => `<option>${t}</option>`).join(""));
     $("#f-guar").insertAdjacentHTML("beforeend", [...new Set(rows.map((r) => r.guar))].sort((a, b) => a - b).map((g) => `<option value="${g}">${g}명</option>`).join(""));
     $("#f-hall").onclick = (e) => { if (e.target.dataset.v) { st.hall = e.target.dataset.v; render(); } };
     const toggle = (key) => (e) => { const v = e.target.dataset.v; if (!v) return; const s = new Set(st[key]); s.has(v) ? s.delete(v) : s.add(v); st[key] = [...s]; render(); };
-    $("#f-month").onclick = toggle("month"); $("#f-dow").onclick = toggle("dow");
-    ["time", "guar", "max"].forEach((k) => ($("#f-" + k).onchange = (e) => { st[k] = e.target.value; render(); }));
+    $("#f-month").onclick = toggle("month");
+    ["guar", "max"].forEach((k) => ($("#f-" + k).onchange = (e) => { st[k] = e.target.value; render(); }));
+
+    // 요일 · 시간 격자 (다시 그려도 살아남도록 위임)
+    $("#dowtime").onclick = (e) => {
+      const cell = e.target.closest("[data-cell]");
+      if (cell) { setOff([cell.dataset.cell], !isOff(...cell.dataset.cell.split("|"))); return render(); }
+      const row = e.target.closest("[data-row]");
+      if (row) {
+        const d = row.dataset.row, keys = dtTimes().filter((t) => dtExists(d, t)).map((t) => offKey(d, t));
+        setOff(keys, keys.some((k) => !st.off.includes(k)));   // 하나라도 켜져 있으면 전부 끈다
+        return render();
+      }
+      const col = e.target.closest("[data-col]");
+      if (col) {
+        const t = col.dataset.col, keys = dtDays().filter((d) => dtExists(d, t)).map((d) => offKey(d, t));
+        setOff(keys, keys.some((k) => !st.off.includes(k)));
+        return render();
+      }
+    };
+    $("#dt-on").onclick = () => { st.off = []; render(); };
+    $("#dt-off").onclick = () => {
+      const keys = [];
+      dtDays().forEach((d) => dtTimes().forEach((t) => dtExists(d, t) && keys.push(offKey(d, t))));
+      setOff(keys, true); render();
+    };
     $("#f-promo").onchange = (e) => { st.promo = e.target.checked; render(); };
     $("#f-star").onchange = (e) => { st.star = e.target.checked; render(); };
     $("#f-sort").onchange = (e) => { const [k, d] = e.target.value.split("|"); st.sort = k; st.dir = +d; render(); };
@@ -118,8 +181,8 @@
   function syncControls() {
     document.querySelectorAll("#f-hall button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === st.hall));
     document.querySelectorAll("#f-month button").forEach((b) => b.setAttribute("aria-pressed", st.month.includes(b.dataset.v)));
-    document.querySelectorAll("#f-dow button").forEach((b) => b.setAttribute("aria-pressed", st.dow.includes(b.dataset.v)));
-    $("#f-time").value = st.time; $("#f-guar").value = st.guar; $("#f-max").value = st.max; $("#f-promo").checked = st.promo; $("#f-star").checked = st.star;
+    renderMatrix();
+    $("#f-guar").value = st.guar; $("#f-max").value = st.max; $("#f-promo").checked = st.promo; $("#f-star").checked = st.star;
     const sortSel = $("#f-sort"); const want = `${st.sort}|${st.dir}`;
     sortSel.value = [...sortSel.options].some((o) => o.value === want) ? want : "";
   }
@@ -137,7 +200,7 @@
   function render() {
     if (!rows.length) return;
     syncControls(); store.set("nh-filter", st);
-    let r = rows.filter((x) => (st.hall === "all" || x.hall === st.hall) && st.month.includes(x.date.slice(5, 7)) && st.dow.includes(x.dow) && (st.time === "all" || x.time === st.time) && (st.guar === "all" || x.guar === +st.guar) && (st.max === "0" || (x.disc ?? x.total) <= +st.max) && (!st.promo || x.promo) && (!st.star || note(x.id).starred));
+    let r = rows.filter(passesFilter);
     const k = st.sort;
     r.sort((a, b) => { let va = a[k], vb = b[k]; if (k === "date") { va = a.date + a.time; vb = b.date + b.time; } if (k === "disc") { va = a.disc ?? a.total; vb = b.disc ?? b.total; } return (va > vb ? 1 : va < vb ? -1 : 0) * st.dir || (a.date + a.time).localeCompare(b.date + b.time); });
     document.querySelectorAll("#tbl th[data-sort]").forEach((th) => { th.textContent = th.textContent.replace(/ [▲▼]$/, ""); if (th.dataset.sort === k) th.textContent += st.dir > 0 ? " ▲" : " ▼"; });
@@ -328,15 +391,18 @@
 
   // ---------- 엑셀 내보내기 ----------
   // 화면에서 보던 것을 그대로: 지금 필터된 목록 / 전체 / 비교표 / 요금 패턴
-  function filteredRows() {
-    return rows.filter((x) => (st.hall === "all" || x.hall === st.hall) && st.month.includes(x.date.slice(5, 7)) && st.dow.includes(x.dow) && (st.time === "all" || x.time === st.time) && (st.guar === "all" || x.guar === +st.guar) && (st.max === "0" || (x.disc ?? x.total) <= +st.max) && (!st.promo || x.promo) && (!st.star || note(x.id).starred));
-  }
+  function filteredRows() { return rows.filter(passesFilter); }
   function filterSummary() {
     const p = [];
     p.push("홀: " + (st.hall === "all" ? "전체" : HALL[st.hall]));
     p.push("월: " + (st.month.length === 4 ? "전체" : st.month.map((m) => +m + "월").join(", ")));
-    p.push("요일: " + (st.dow.length === 3 ? "전체" : st.dow.join(", ")));
-    if (st.time !== "all") p.push("시간: " + st.time);
+    const excluded = {};
+    st.off.forEach((k) => { const [d, t] = k.split("|"); (excluded[d] ||= []).push(t); });
+    const exText = DOW_ORDER.filter((d) => excluded[d]).map((d) => {
+      const all = dtTimes().filter((t) => dtExists(d, t));
+      return excluded[d].length >= all.length ? `${d} 전체` : `${d} ${excluded[d].sort().join("·")}`;
+    }).join(" / ");
+    p.push("요일·시간: " + (exText ? "제외 → " + exText : "전체"));
     if (st.guar !== "all") p.push("보증인원: " + st.guar + "명");
     if (st.max !== "0") p.push("총액 상한: " + won(+st.max) + "원");
     if (st.promo) p.push("10% 혜택일만");

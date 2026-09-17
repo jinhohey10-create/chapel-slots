@@ -32,9 +32,6 @@
         <button data-v="all" aria-pressed="true">전체</button><button class="M" data-v="lamer" aria-pressed="false">라메르홀</button><button class="F" data-v="laforet" aria-pressed="false">라포레홀</button></div></div>
       <div class="field"><span>월</span><div class="seg" id="f-month">
         <button data-v="08" aria-pressed="true">8월</button><button data-v="09" aria-pressed="true">9월</button><button data-v="10" aria-pressed="true">10월</button><button data-v="11" aria-pressed="true">11월</button></div></div>
-      <div class="field"><span>요일</span><div class="seg" id="f-dow">
-        <button data-v="토" aria-pressed="true">토</button><button data-v="일" aria-pressed="true">일</button><button data-v="월" aria-pressed="true">월(대체공휴일)</button></div></div>
-      <div class="field"><span>시간대</span><select id="f-time"><option value="all">전체</option></select></div>
       <div class="field"><span>보증인원</span><select id="f-guar"><option value="all">전체</option></select></div>
       <div class="field"><span>총액 상한 (대관료+식대)</span><select id="f-max">
         <option value="0">제한 없음</option><option value="25000000">2,500만</option><option value="30000000">3,000만</option><option value="35000000">3,500만</option><option value="40000000">4,000만</option><option value="45000000">4,500만</option></select></div>
@@ -47,6 +44,16 @@
         <option value="likes|-1">찜 많은순</option></select></div>
       <label class="check"><input type="checkbox" id="f-promo"> 10% 할인 혜택만</label>
       <label class="check"><input type="checkbox" id="f-star"> ★ 후보만</label>
+    </div>
+    <div class="dtfield">
+      <div class="dthead">
+        <span>요일 · 시간대 <em>보고 싶은 칸만 켜두세요. 요일·시간 제목을 누르면 줄 전체가 켜지고 꺼집니다.</em></span>
+        <span class="dtacts">
+          <button type="button" class="linkbtn" id="dt-on">모두 켜기</button>
+          <button type="button" class="linkbtn" id="dt-off">모두 끄기</button>
+        </span>
+      </div>
+      <div class="dtwrap" id="dowtime"></div>
     </div>
     <div class="resultbar"><span id="count" class="num"></span><span class="muted">열 제목을 누르면 정렬 · <b>비교</b>로 아래 견적 비교에 추가</span></div>
     <div class="cards" id="cards"></div>
