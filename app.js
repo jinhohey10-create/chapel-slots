@@ -310,6 +310,131 @@
     }
   }
 
+  // ---------- 엑셀 내보내기 ----------
+  // 화면에서 보던 것을 그대로: 지금 필터된 목록 / 전체 / 비교표 / 요금 패턴
+  function filteredRows() {
+    return rows.filter((x) => (st.hall === "all" || x.hall === st.hall) && st.month.includes(x.date.slice(5, 7)) && st.dow.includes(x.dow) && (st.time === "all" || x.time === st.time) && (st.guar === "all" || x.guar === +st.guar) && (st.max === "0" || (x.disc ?? x.total) <= +st.max) && (!st.promo || x.promo) && (!st.star || note(x.id).starred));
+  }
+  function filterSummary() {
+    const p = [];
+    p.push("홀: " + (st.hall === "all" ? "전체" : HALL[st.hall]));
+    p.push("월: " + (st.month.length === 4 ? "전체" : st.month.map((m) => +m + "월").join(", ")));
+    p.push("요일: " + (st.dow.length === 3 ? "전체" : st.dow.join(", ")));
+    if (st.time !== "all") p.push("시간: " + st.time);
+    if (st.guar !== "all") p.push("보증인원: " + st.guar + "명");
+    if (st.max !== "0") p.push("총액 상한: " + won(+st.max) + "원");
+    if (st.promo) p.push("10% 혜택일만");
+    if (st.star) p.push("★ 후보만");
+    return p.join(" · ");
+  }
+  const slotRow = (x) => {
+    const n = note(x.id);
+    return {
+      "홀": HALL[x.hall], "예식일": x.date, "요일": x.dow, "시간": x.time,
+      "대관료": x.rental, "식대": x.meal, "보증인원": x.guar, "1인 식대": x.per,
+      "대관료+식대": x.total,
+      "10% 혜택일": x.promo ? "예" : "",
+      "할인 추정가": x.promo ? x.disc : "",
+      "찜(사이트)": x.likes,
+      "★ 후보": n.starred ? "★" : "",
+      "비교중": n.picked ? "예" : "",
+      "상담 메모": n.memo || "",
+      "웨딩DB 견적": n.sent_quote_code || "",
+      "슬롯ID": x.id,
+    };
+  };
+  function sheetFrom(list) {
+    const ws = XLSX.utils.json_to_sheet(list);
+    const keys = Object.keys(list[0] || {});
+    ws["!cols"] = keys.map((k) => ({ wch: Math.min(Math.max(k.length + 2, ...list.map((r) => String(r[k] ?? "").length + 2)), 42) }));
+    return ws;
+  }
+
+  function cmpSheet() {
+    const P = picks(); if (!P.length) return null;
+    const C = P.map(calc);
+    const out = [["항목", ...P.map((x) => `${HALL[x.hall]} ${x.date.replace(/-/g, ".")} (${x.dow}) ${x.time}`)]];
+    const row = (label, f) => out.push([label, ...P.map((x, i) => f(x, note(x.id), C[i]))]);
+    out.push(["■ 기본 정보"]);
+    row("예식일", (x) => x.date); row("요일", (x) => x.dow); row("시간", (x) => x.time);
+    row("혜택", (x) => (x.promo ? "계약가 10% 할인" : ""));
+    row("찜(사이트)", (x) => x.likes);
+    row("★ 후보", (x, n) => (n.starred ? "★" : ""));
+    out.push(["■ 인원 · 식대"]);
+    row("보증인원", (x) => x.guar);
+    row("예상 하객", (x, n) => n.expected_guests ?? "");
+    row("청구 인원", (x, n, c) => c.billed);
+    row("1인 식대", (x) => x.per);
+    row("식대 합계", (x, n, c) => c.meal);
+    out.push(["■ 비용"]);
+    row("대관료", (x) => x.rental);
+    EXTRAS.forEach(([k, l]) => row(l, (x, n) => (n.extras || {})[k] ?? ""));
+    row("할인", (x, n, c) => c.disc);
+    out.push(["■ 합계"]);
+    row("부대상품 합계", (x, n, c) => c.add);
+    row("총 예상 비용", (x, n, c) => c.total);
+    row("1인당 환산", (x, n, c) => c.perHead);
+    out.push(["■ 메모"]);
+    row("상담 메모", (x, n) => n.memo || "");
+    row("웨딩DB 견적", (x, n) => n.sent_quote_code || "");
+    const ws = XLSX.utils.aoa_to_sheet(out);
+    ws["!cols"] = [{ wch: 18 }, ...P.map(() => ({ wch: 26 }))];
+    return ws;
+  }
+
+  function patternList() {
+    const g = {};
+    rows.forEach((x) => { const season = x.date.slice(5, 7) === "08" ? "8월" : x.promo ? "10월 혜택일" : "9~11월"; const key = [x.hall, season, x.dow, x.time, x.rental, x.guar, x.per].join("|"); g[key] = (g[key] || 0) + 1; });
+    const order = { "8월": 0, "9~11월": 1, "10월 혜택일": 2 }, dw = { 토: 0, 일: 1, 월: 2 };
+    return Object.entries(g).map(([k, n]) => { const [h, s, d, t, r, gu, p] = k.split("|"); return { h, s, d, t, r: +r, gu: +gu, p: +p, n }; })
+      .sort((a, b) => (a.h === b.h ? 0 : a.h === "lamer" ? -1 : 1) || order[a.s] - order[b.s] || dw[a.d] - dw[b.d] || a.t.localeCompare(b.t) || b.n - a.n)
+      .map((x) => ({ "홀": HALL[x.h], "시즌": x.s, "요일": x.d, "시간": x.t, "대관료": x.r, "보증인원": x.gu, "1인 식대": x.p, "대관료+식대": x.r + x.p * x.gu, "슬롯 수": x.n }));
+  }
+
+  function exportXlsx() {
+    const btn = $("#xlsx"); const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "내보내는 중…";
+    try {
+      const shown = filteredRows();
+      const starred = rows.filter((x) => note(x.id).starred);
+      const P = picks();
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+
+      const info = [
+        { "항목": "내보낸 일시", "내용": now.toLocaleString("ko-KR") },
+        { "항목": "자료 수집일", "내용": rows[0]?.collected || "" },
+        { "항목": "대상", "내용": "더채플앳논현 라메르홀·라포레홀 / 2027-08 ~ 2027-11" },
+        { "항목": "전체 슬롯", "내용": `${rows.length}건 (라메르 ${rows.filter((x) => x.hall === "lamer").length} / 라포레 ${rows.filter((x) => x.hall === "laforet").length})` },
+        { "항목": "01_슬롯목록 필터", "내용": filterSummary() },
+        { "항목": "01_슬롯목록 건수", "내용": `${shown.length}건` },
+        { "항목": "★ 후보", "내용": `${starred.length}건` },
+        { "항목": "비교 담은 슬롯", "내용": `${P.length}건` },
+        { "항목": " ", "내용": " " },
+        { "항목": "식대", "내용": "1인 식대 × 보증인원 (사이트 표시가 기준, 1인 식대는 역산)" },
+        { "항목": "10% 혜택일", "내용": "10월 2·3·4·9·10·11일. 표시가를 할인 전 정가로 보고 (대관료+식대)×0.9 를 추정가로 병기" },
+        { "항목": "총 예상 비용", "내용": "대관료 + 1인 식대×max(예상 하객, 보증인원) + 부대상품 − 할인" },
+        { "항목": "주의", "내용": "VAT·주류 포함 여부와 필수 부대상품은 반영하지 않았습니다. 실제 상담에서 확인하세요." },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheetFrom(info), "00_안내");
+      XLSX.utils.book_append_sheet(wb, sheetFrom(shown.length ? shown.map(slotRow) : [{ "홀": "조건에 맞는 슬롯이 없습니다" }]), "01_슬롯목록");
+      XLSX.utils.book_append_sheet(wb, sheetFrom(rows.map(slotRow)), "02_전체슬롯");
+      const cmp = cmpSheet();
+      if (cmp) XLSX.utils.book_append_sheet(wb, cmp, "03_견적비교");
+      XLSX.utils.book_append_sheet(wb, sheetFrom(patternList()), "04_요금패턴");
+
+      XLSX.writeFile(wb, `논현_예식슬롯_${stamp}.xlsx`);
+      toast(`엑셀로 내보냈어요 — 목록 ${shown.length}건${P.length ? ` · 비교 ${P.length}건` : ""}`);
+    } catch (err) {
+      toast("내보내지 못했어요: " + (err.message || err));
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+  $("#xlsx").onclick = exportXlsx;
+
   // ---------- pattern ----------
   function renderPattern() {
     const g = {};

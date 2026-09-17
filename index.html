@@ -18,7 +18,10 @@
       <h1>라메르홀 vs 라포레홀 슬롯 비교</h1>
       <p class="sub">스마트 예약 검색 결과를 옮긴 목록이에요. 후보(★)와 비교 목록, 부대상품 입력값은 함께 쓰는 사람과 실시간으로 공유돼요. <a id="weddingdb" target="_blank" rel="noopener">웨딩 DB 열기 ↗</a></p>
     </div>
-    <span class="sync" id="sync"><i></i><span>연결 중</span></span>
+    <div class="topacts">
+      <button type="button" class="xlsxbtn" id="xlsx">엑셀로 내보내기</button>
+      <span class="sync" id="sync"><i></i><span>연결 중</span></span>
+    </div>
   </header>
 
   <section class="halls" id="halls" aria-label="홀별 요약"><div class="loading">불러오는 중…</div></section>
@@ -99,6 +102,7 @@
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
