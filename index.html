@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>논현 예식 슬롯 비교</title>
+<meta name="description" content="더채플앳논현 라메르홀·라포레홀 계약 가능 예식 슬롯 비교">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💒</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Myeongjo:wght@700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">더채플앳논현 · 계약 가능 예식 슬롯 · 2027년 8–11월</div>
+      <h1>라메르홀 vs 라포레홀 슬롯 비교</h1>
+      <p class="sub">스마트 예약 검색 결과를 옮긴 목록이에요. 후보(★)와 비교 목록, 부대상품 입력값은 함께 쓰는 사람과 실시간으로 공유돼요. <a id="weddingdb" target="_blank" rel="noopener">웨딩 DB 열기 ↗</a></p>
+    </div>
+    <span class="sync" id="sync"><i></i><span>연결 중</span></span>
+  </header>
+
+  <section class="halls" id="halls" aria-label="홀별 요약"><div class="loading">불러오는 중…</div></section>
+
+  <section class="panel" aria-label="필터와 슬롯 목록">
+    <div class="controls">
+      <div class="field"><span>홀</span><div class="seg" id="f-hall">
+        <button data-v="all" aria-pressed="true">전체</button><button class="M" data-v="lamer" aria-pressed="false">라메르홀</button><button class="F" data-v="laforet" aria-pressed="false">라포레홀</button></div></div>
+      <div class="field"><span>월</span><div class="seg" id="f-month">
+        <button data-v="08" aria-pressed="true">8월</button><button data-v="09" aria-pressed="true">9월</button><button data-v="10" aria-pressed="true">10월</button><button data-v="11" aria-pressed="true">11월</button></div></div>
+      <div class="field"><span>요일</span><div class="seg" id="f-dow">
+        <button data-v="토" aria-pressed="true">토</button><button data-v="일" aria-pressed="true">일</button><button data-v="월" aria-pressed="true">월(대체공휴일)</button></div></div>
+      <div class="field"><span>시간대</span><select id="f-time"><option value="all">전체</option></select></div>
+      <div class="field"><span>보증인원</span><select id="f-guar"><option value="all">전체</option></select></div>
+      <div class="field"><span>총액 상한 (대관료+식대)</span><select id="f-max">
+        <option value="0">제한 없음</option><option value="25000000">2,500만</option><option value="30000000">3,000만</option><option value="35000000">3,500만</option><option value="40000000">4,000만</option><option value="45000000">4,500만</option></select></div>
+      <label class="check"><input type="checkbox" id="f-promo"> 10% 할인 혜택만</label>
+      <label class="check"><input type="checkbox" id="f-star"> ★ 후보만</label>
+    </div>
+    <div class="resultbar"><span id="count" class="num"></span><span class="muted">열 제목을 누르면 정렬 · <b>비교</b>로 아래 견적 비교에 추가</span></div>
+    <div class="tablebox">
+      <table id="tbl">
+        <thead><tr>
+          <th class="l">★</th><th class="l" data-sort="hall">홀</th><th class="l" data-sort="date">예식일</th><th class="l" data-sort="dow">요일</th><th class="l" data-sort="time">시간</th>
+          <th data-sort="rental">대관료</th><th data-sort="meal">식대</th><th data-sort="guar">보증인원</th><th data-sort="per">1인 식대</th>
+          <th data-sort="total">대관료+식대</th><th data-sort="disc">10% 할인 추정가</th><th data-sort="likes">찜</th><th class="l">비교</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="견적 비교" id="compare">
+    <div class="cmp-head"><h2>견적 비교 <span class="muted num" id="cmpcount"></span></h2>
+      <span class="note">흰 칸은 직접 입력(자동 저장·공유), 회색 줄은 자동 계산. 총 예상 비용 = 대관료 + 식대 + 부대상품 − 할인</span></div>
+    <div id="cmpbody"></div>
+  </section>
+
+  <details class="panel">
+    <summary>요금 패턴 — 같은 조건이면 가격이 어떻게 달라지나</summary>
+    <div class="tablebox" style="max-height:none"><table id="pattern" style="min-width:760px"><thead><tr>
+      <th class="l">홀</th><th class="l">시즌</th><th class="l">요일</th><th class="l">시간</th><th>대관료</th><th>보증인원</th><th>1인 식대</th><th>대관료+식대</th><th>슬롯 수</th></tr></thead><tbody></tbody></table></div>
+  </details>
+
+  <section class="note">
+    <b>읽을 때 참고</b>
+    <ul>
+      <li>금액은 사이트 카드에 표시된 값 그대로입니다(수집일 <span id="collected">2026-09-17</span>). 식대 = 1인 식대 × 보증인원.</li>
+      <li>10월 2·3·4·9·10·11일 슬롯에는 “특정일 계약 혜택 │ 계약가 10% 할인”이 붙어 있습니다. 표시가는 할인 전 정가로 보고 (대관료+식대)×0.9를 추정가로 병기했습니다. 실제 적용 범위는 상담 시 확인이 필요합니다.</li>
+      <li>찜 = 사이트 카드의 하트 숫자(수집 시점). VAT·주류 포함 여부와 필수 부대상품은 반영하지 않았습니다.</li>
+      <li><b>견적으로 보내기</b>를 누르면 웨딩 DB의 견적(라메르 V-008 / 라포레 V-003)으로 새로 등록됩니다.</li>
+    </ul>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
