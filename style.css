@@ -1,17 +1,17 @@
 
 :root{
   --bg:#F3F5F6; --surface:#FFFFFF; --surface2:#EBEFF1; --ink:#18212B; --ink2:#55616D; --line:#D9DFE3;
-  --mer:#1D6A78; --mer-soft:#DCEDF0; --foret:#5E7A2E; --foret-soft:#E6EED8; --sl:#8A3D6B; --sl-soft:#F3E3EC; --dc:#3D5A98; --dc-soft:#E1E7F4; --js:#A63D40; --js-soft:#F6E1E1;
+  --mer:#1D6A78; --mer-soft:#DCEDF0; --foret:#5E7A2E; --foret-soft:#E6EED8; --sl:#8A3D6B; --sl-soft:#F3E3EC; --dc:#3D5A98; --dc-soft:#E1E7F4; --js:#A63D40; --js-soft:#F6E1E1; --bp:#5B3FA0; --bp-soft:#E8E2F5;
   --promo:#A8641A; --promo-soft:#F6E8D4; --focus:#1D6A78; --sel:#FFF6D6;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12171C; --surface:#1A2128; --surface2:#222B33; --ink:#E6EBEF; --ink2:#98A5B0; --line:#2F3A44;
-  --mer:#6CC2D0; --mer-soft:#1C3439; --foret:#A9C66F; --foret-soft:#2A3320; --sl:#E39BC4; --sl-soft:#3A2332; --dc:#9DB4E8; --dc-soft:#1F2A40; --js:#F09A9C; --js-soft:#3B2224;
+  --mer:#6CC2D0; --mer-soft:#1C3439; --foret:#A9C66F; --foret-soft:#2A3320; --sl:#E39BC4; --sl-soft:#3A2332; --dc:#9DB4E8; --dc-soft:#1F2A40; --js:#F09A9C; --js-soft:#3B2224; --bp:#B9A6EC; --bp-soft:#2A2340;
   --promo:#E7A95C; --promo-soft:#3A2C1A; --focus:#6CC2D0; --sel:#3A351F;
 }}
 :root[data-theme="dark"]{
   --bg:#12171C; --surface:#1A2128; --surface2:#222B33; --ink:#E6EBEF; --ink2:#98A5B0; --line:#2F3A44;
-  --mer:#6CC2D0; --mer-soft:#1C3439; --foret:#A9C66F; --foret-soft:#2A3320; --sl:#E39BC4; --sl-soft:#3A2332; --dc:#9DB4E8; --dc-soft:#1F2A40; --js:#F09A9C; --js-soft:#3B2224;
+  --mer:#6CC2D0; --mer-soft:#1C3439; --foret:#A9C66F; --foret-soft:#2A3320; --sl:#E39BC4; --sl-soft:#3A2332; --dc:#9DB4E8; --dc-soft:#1F2A40; --js:#F09A9C; --js-soft:#3B2224; --bp:#B9A6EC; --bp-soft:#2A2340;
   --promo:#E7A95C; --promo-soft:#3A2C1A; --focus:#6CC2D0; --sel:#3A351F;
 }
 *{box-sizing:border-box}
@@ -30,7 +30,7 @@ a{color:var(--mer)}
 .halls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .hall{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
 .hall .name{font-family:"Nanum Myeongjo",serif;font-size:20px;font-weight:800}
-.hall.M .name{color:var(--mer)} .hall.F .name{color:var(--foret)} .hall.S .name{color:var(--sl)} .hall.D .name{color:var(--dc)} .hall.J .name{color:var(--js)}
+.hall.M .name{color:var(--mer)} .hall.F .name{color:var(--foret)} .hall.S .name{color:var(--sl)} .hall.D .name{color:var(--dc)} .hall.J .name{color:var(--js)} .hall.B .name{color:var(--bp)}
 .hall .gloss{font-size:12px;color:var(--ink2)}
 .hall .count{grid-row:1/3;grid-column:2;text-align:right;font-size:28px;font-weight:700;line-height:1}
 .hall .count small{display:block;font-size:11px;font-weight:500;color:var(--ink2);margin-top:4px}
@@ -52,6 +52,7 @@ a{color:var(--mer)}
 .seg button.S[aria-pressed="true"]{background:var(--sl);border-color:var(--sl);color:#fff}
 .seg button.D[aria-pressed="true"]{background:var(--dc);border-color:var(--dc);color:#fff}
 .seg button.J[aria-pressed="true"]{background:var(--js);border-color:var(--js);color:#fff}
+.seg button.B[aria-pressed="true"]{background:var(--bp);border-color:var(--bp);color:#fff}
 select,input[type=number]{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
 input[type=number]{width:100%}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -94,7 +95,7 @@ th.l,td.l{text-align:left}
 tbody tr:hover{background:var(--surface2)}
 tbody tr.picked{background:var(--sel)}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px}
-.tag.M{background:var(--mer-soft);color:var(--mer)} .tag.F{background:var(--foret-soft);color:var(--foret)} .tag.S{background:var(--sl-soft);color:var(--sl)} .tag.D{background:var(--dc-soft);color:var(--dc)} .tag.J{background:var(--js-soft);color:var(--js)}
+.tag.M{background:var(--mer-soft);color:var(--mer)} .tag.F{background:var(--foret-soft);color:var(--foret)} .tag.S{background:var(--sl-soft);color:var(--sl)} .tag.D{background:var(--dc-soft);color:var(--dc)} .tag.J{background:var(--js-soft);color:var(--js)} .tag.B{background:var(--bp-soft);color:var(--bp)}
 .tag.P{background:var(--promo-soft);color:var(--promo)}
 .dow-토{color:var(--ink);font-weight:600}.dow-금,.dow-월,.dow-수,.dow-목{color:var(--promo)}
 .strike{color:var(--ink2)}

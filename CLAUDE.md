@@ -1,6 +1,6 @@
 # chapel-slots — 작업 인수인계
 
-더채플앳논현 라메르홀·라포레홀(2027-05~11, 470건), 더채플앳대치 대치점(2027-06~11, 109건), 아펠가모 선릉 웨딩홀 4층(2027-03~10, 354건), 아펠가모 잠실 웨딩홀 2층(2027-03~10, 313건)의 계약 가능 예식 슬롯 비교 웹. 예비 배우자와 함께 쓰는 용도.
+더채플앳논현 라메르홀·라포레홀(2027-05~11, 470건), 더채플앳대치 대치점(2027-06~11, 109건), 아펠가모 선릉 웨딩홀 4층(2027-03~10, 354건), 아펠가모 잠실 웨딩홀 2층(2027-03~10, 313건), 아펠가모 반포 웨딩홀 LL층(2027-05~10, 109건)의 계약 가능 예식 슬롯 비교 웹. 예비 배우자와 함께 쓰는 용도.
 
 **사용자가 쓰는 설정·데이터는 절대 건드리지 않는다**: `chapel_slot_notes`(★·비교·메모), 브라우저에 저장된 필터(`localStorage` 의 `nh-filter`). 데이터를 더할 때는 추가만 하고, 저장된 필터가 새 기본값을 이기는 구조를 유지한다.
 
@@ -11,11 +11,11 @@
 - 배포: Vercel 팀 FITI(`team_P7Tgr7hVnEB2623LzUhXkWrl`), 프로젝트 `chapel-slots` → https://chapel-slots.vercel.app
   - **2026-09-17 저장소 연결 완료. main 에 push 하면 자동 배포된다.** (그전에는 파일 직접 업로드 방식이었다)
 - DB: 웨딩 DB와 같은 Supabase 프로젝트 `qgwdzuemlacqotnxsupn` (공개 키는 config.js)
-  - `chapel_slots` (id 형식 `lamer-2027-11-20-1230`, 홀 = `lamer` / `laforet` / `daechi` / `seolleung` / `jamsil` — CHECK 제약으로 제한): 홀, 날짜, 요일, 시간, 대관료, 식대 합계, 보증인원, 1인 식대, promo_10pct, promo_label(사이트 혜택 문구), likes(사이트 찜), is_available, collected_at
+  - `chapel_slots` (id 형식 `lamer-2027-11-20-1230`, 홀 = `lamer` / `laforet` / `daechi` / `seolleung` / `jamsil` / `banpo` — CHECK 제약으로 제한): 홀, 날짜, 요일, 시간, 대관료, 식대 합계, 보증인원, 1인 식대, promo_10pct, promo_label(사이트 혜택 문구), likes(사이트 찜), is_available, collected_at
   - `chapel_slot_notes` (slot_id PK): picked, pick_order, expected_guests, extras(jsonb: flower/show/mc/snap/pyebaek/dress/etc), discount_override, starred, memo, sent_quote_code — Realtime 발행 대상
   - RLS는 기존 웨딩 DB처럼 anon 전체 허용(오픈). 로그인 없음.
 - 기존 웨딩 DB 앱: https://wedding-db-mu.vercel.app (GitHub `jinhohey10-create/wedding-db`)
-  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 대치 V-009 / 선릉 V-006 / 잠실 V-010, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회. `VENUE_CODE` 에 없는 홀은 보내기 전에 막는다)
+  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 대치 V-009 / 선릉 V-006 / 잠실 V-010 / 반포 V-011, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회. `VENUE_CODE` 에 없는 홀은 보내기 전에 막는다)
   - 웨딩 DB 쪽 `venue_quotes`에 그 뒤 `valid_until`·`memo` 컬럼이 추가됐다(v7). 지금 insert 페이로드는 그대로 호환된다.
 
 ## 홀 추가하는 법
@@ -47,6 +47,8 @@
 - 출처: thechapel.co.kr 스마트 예약 검색 결과(2026-09-17 수집, 조건: 논현 라메르/라포레, 2027-08-01~11-30, 하객 200~350명 / 5~7월은 2026-09-18 추가)
 - 더채플앳대치: thechapel.co.kr 스마트 예약 검색 결과(2026-09-18 수집, 조건: 대치점, 2027-06-01~11-30, 하객 200~400명)
 - 아펠가모 잠실: apelgamo.com 스마트 예약 검색 결과(2026-09-18 수집, 조건: 잠실 웨딩홀(2층), 2027-03-01~10-31, 하객 100~400명). 3~8월 대관료 50%·10월 특정일 10% 구조가 선릉과 같다.
+- 아펠가모 반포: apelgamo.com 스마트 예약 검색 결과(2026-09-18 수집, 조건: 반포 웨딩홀(LL층), 2027-05-01~10-30, 하객 100~400명). 혜택 구조가 선릉·잠실과 같다.
+- 슬롯이 1,000건을 넘었다. Supabase 는 한 번에 1,000행만 주므로 `load()` 는 `fetchAll` 로 끝까지 나눠 받는다(순서 확정용 `id` 정렬 필수).
 - 아펠가모 선릉: apelgamo.com 스마트 예약 검색 결과(2026-09-18 수집, 조건: 선릉 웨딩홀(4층), 2027-03-01~10-30, 토·일·금·주중공휴일, 전 시간대, 하객 100~400명). 11월은 검색 범위 밖이라 없다.
 - 식대 = 1인 식대 × 보증인원. 1인 식대는 역산.
 - 혜택 해석은 `app.js` 의 `rentPctOf` / `autoDisc` / `promoTag` 한곳에서 한다.
