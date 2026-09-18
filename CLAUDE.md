@@ -15,7 +15,7 @@
   - `chapel_slot_notes` (slot_id PK): picked, pick_order, expected_guests, extras(jsonb: flower/show/mc/snap/pyebaek/dress/etc), discount_override, starred, memo, sent_quote_code — Realtime 발행 대상
   - RLS는 기존 웨딩 DB처럼 anon 전체 허용(오픈). 로그인 없음.
 - 기존 웨딩 DB 앱: https://wedding-db-mu.vercel.app (GitHub `jinhohey10-create/wedding-db`)
-  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 선릉 V-006, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회. 대치는 웨딩 DB 에 아직 없어 `VENUE_CODE` 가 비어 있고, 보내기 전에 막는다)
+  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 대치 V-009 / 선릉 V-006, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회. `VENUE_CODE` 에 없는 홀은 보내기 전에 막는다)
   - 웨딩 DB 쪽 `venue_quotes`에 그 뒤 `valid_until`·`memo` 컬럼이 추가됐다(v7). 지금 insert 페이로드는 그대로 호환된다.
 
 ## 홀 추가하는 법
