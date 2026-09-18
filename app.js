@@ -38,9 +38,16 @@
   const notes = new Map(); // slot_id -> note
   // off: 보고 싶지 않은 "요일|시간" 조합. 요일 필터와 시간 필터를 따로 두면
   // 일요일 17시를 빼려다 토요일 17시까지 사라져서, 조합 단위로 끈다.
-  const st = Object.assign({ hall: "all", month: ["03", "04", "05", "06", "07", "08", "09", "10", "11"], off: [], guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, store.get("nh-filter", {}));
+  const saved = store.get("nh-filter", {});
+  const st = Object.assign({ hallOff: [], month: ["03", "04", "05", "06", "07", "08", "09", "10", "11"], off: [], guar: "all", max: "0", promo: false, star: false, sort: "date", dir: 1 }, saved);
   if (!Array.isArray(st.off)) st.off = [];
   delete st.dow; delete st.time;   // 예전 저장값 정리
+  // 홀은 예전에 한 곳만 고르는 방식(hall: "lamer")이었다. 같은 뜻 그대로 '끈 홀 목록'으로 옮긴다.
+  // 켠 홀이 아니라 끈 홀을 저장하므로, 나중에 새 홀이 생기면 저절로 보인다.
+  if (!Array.isArray(st.hallOff)) st.hallOff = [];
+  if (!Array.isArray(saved.hallOff) && saved.hall && saved.hall !== "all") st.hallOff = HALL_KEYS.filter((h) => h !== saved.hall);
+  delete st.hall;
+  const showHall = (h) => !st.hallOff.includes(h);
   const DOW_ORDER = ["토", "일", "금", "월", "수", "목"];
   const offKey = (d, t) => d + "|" + t;
   const isOff = (d, t) => st.off.includes(offKey(d, t));
@@ -52,7 +59,7 @@
 
   const note = (id) => notes.get(id) || { slot_id: id, picked: false, pick_order: null, expected_guests: null, extras: {}, discount_override: null, starred: false, memo: null, sent_quote_code: null };
   const passesFilter = (x) =>
-    (st.hall === "all" || x.hall === st.hall) &&
+    showHall(x.hall) &&
     st.month.includes(x.date.slice(5, 7)) &&
     !isOff(x.dow, x.time) &&
     (st.guar === "all" || x.guar === +st.guar) &&
@@ -140,7 +147,7 @@
 
   // ---------- filters & table ----------
   // 지금 홀 선택에서 실제로 존재하는 (요일, 시간) 조합만 다룬다
-  const hallRows = () => rows.filter((x) => st.hall === "all" || x.hall === st.hall);
+  const hallRows = () => rows.filter((x) => showHall(x.hall));
   const dtTimes = () => [...new Set(hallRows().map((x) => x.time))].sort();
   const dtDays = () => DOW_ORDER.filter((d) => rows.some((x) => x.dow === d));
   const dtExists = (d, t) => hallRows().some((x) => x.dow === d && x.time === t);
@@ -166,7 +173,17 @@
 
   function initControls() {
     $("#f-guar").insertAdjacentHTML("beforeend", [...new Set(rows.map((r) => r.guar))].sort((a, b) => a - b).map((g) => `<option value="${g}">${g}명</option>`).join(""));
-    $("#f-hall").onclick = (e) => { if (e.target.dataset.v) { st.hall = e.target.dataset.v; render(); } };
+    // 전체를 보던 중에 홀을 누르면 그 홀만, 그다음부터는 누를 때마다 더하고 뺀다. 다 빼면 다시 전체.
+    $("#f-hall").onclick = (e) => {
+      const v = e.target.closest("button")?.dataset.v; if (!v) return;
+      if (v === "all") st.hallOff = [];
+      else if (!st.hallOff.length) st.hallOff = HALL_KEYS.filter((h) => h !== v);
+      else {
+        const s = new Set(st.hallOff); s.has(v) ? s.delete(v) : s.add(v);
+        st.hallOff = HALL_KEYS.every((h) => s.has(h)) ? [] : [...s];
+      }
+      render();
+    };
     const toggle = (key) => (e) => { const v = e.target.dataset.v; if (!v) return; const s = new Set(st[key]); s.has(v) ? s.delete(v) : s.add(v); st[key] = [...s]; render(); };
     $("#f-month").onclick = toggle("month");
     ["guar", "max"].forEach((k) => ($("#f-" + k).onchange = (e) => { st[k] = e.target.value; render(); }));
@@ -202,7 +219,8 @@
     $("#cards").onclick = onTableClick;
   }
   function syncControls() {
-    document.querySelectorAll("#f-hall button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === st.hall));
+    const allHalls = !HALL_KEYS.some((h) => st.hallOff.includes(h));
+    document.querySelectorAll("#f-hall button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === "all" ? allHalls : !allHalls && showHall(b.dataset.v)));
     document.querySelectorAll("#f-month button").forEach((b) => b.setAttribute("aria-pressed", st.month.includes(b.dataset.v)));
     renderMatrix();
     $("#f-guar").value = st.guar; $("#f-max").value = st.max; $("#f-promo").checked = st.promo; $("#f-star").checked = st.star;
@@ -504,7 +522,7 @@
   function filteredRows() { return rows.filter(passesFilter); }
   function filterSummary() {
     const p = [];
-    p.push("홀: " + (st.hall === "all" ? "전체" : HALL[st.hall]));
+    p.push("홀: " + (HALL_KEYS.every(showHall) ? "전체" : HALL_KEYS.filter(showHall).map((h) => HALL[h]).join(", ")));
     p.push("월: " + (st.month.length >= document.querySelectorAll("#f-month button").length ? "전체" : st.month.map((m) => +m + "월").join(", ")));
     const excluded = {};
     st.off.forEach((k) => { const [d, t] = k.split("|"); (excluded[d] ||= []).push(t); });
