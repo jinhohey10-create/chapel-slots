@@ -7,6 +7,7 @@
     laforet:   { name: "라포레홀", short: "라포레", cls: "F", gloss: "더채플앳논현 · La Forêt", src: "https://thechapel.co.kr/ceremony/ceremonyResultList" },
     daechi:    { name: "더채플앳대치", short: "대치", cls: "D", gloss: "더채플앳대치 · 대치점", src: "https://thechapel.co.kr/ceremony/ceremonyResultList" },
     seolleung: { name: "아펠가모 선릉", short: "선릉", cls: "S", gloss: "단독홀 4F · 한신인터밸리24", src: "https://www.apelgamo.com/ceremony/ceremonyResultList" },
+    jamsil:    { name: "아펠가모 잠실", short: "잠실", cls: "J", gloss: "웨딩홀 2F · 한국광고문화회관", src: "https://www.apelgamo.com/ceremony/ceremonyResultList" },
   };
   const HALL_KEYS = Object.keys(HALLS);
   const HALL = Object.fromEntries(HALL_KEYS.map((k) => [k, HALLS[k].name]));
@@ -69,11 +70,23 @@
   const picks = () => rows.filter((r) => note(r.id).picked).sort((a, b) => (note(a.id).pick_order || 0) - (note(b.id).pick_order || 0));
 
   // ---------- data ----------
+  // Supabase 는 한 번에 최대 1,000행만 돌려준다. 홀이 늘어 슬롯이 1,000건을 넘으면서
+  // 날짜가 늦은 슬롯이 말없이 잘렸다 — 끝까지 나눠 받는다. id 로 순서를 확정해 페이지 사이에서 빠지거나 겹치지 않게.
+  async function fetchAll(query) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await query().range(from, from + 999);
+      if (error) return { error };
+      out.push(...data);
+      if (data.length < 1000) return { data: out };
+    }
+  }
+
   async function load() {
     setSync("", "불러오는 중");
     const [s, n] = await Promise.all([
-      sb.from("chapel_slots").select("*").eq("is_available", true).order("ceremony_date").order("ceremony_time"),
-      sb.from("chapel_slot_notes").select("*"),
+      fetchAll(() => sb.from("chapel_slots").select("*").eq("is_available", true).order("ceremony_date").order("ceremony_time").order("id")),
+      fetchAll(() => sb.from("chapel_slot_notes").select("*").order("slot_id")),
     ]);
     if (s.error || n.error) { setSync("err", "불러오기 실패"); $("#halls").innerHTML = `<div class="loading">데이터를 불러오지 못했어요: ${esc((s.error || n.error).message)}</div>`; return; }
     rows = s.data.map((x) => {
@@ -633,7 +646,7 @@
         { "항목": " ", "내용": " " },
         { "항목": "식대", "내용": "1인 식대 × 보증인원 (사이트 표시가 기준, 1인 식대는 역산)" },
         { "항목": "10% 혜택일", "내용": "표시가를 할인 전 정가로 보고 (대관료+식대)×0.9 를 추정가로 병기" },
-        { "항목": "대관료 N% 할인", "내용": "아펠가모 선릉 3~8월 '대관료 추가 50% 할인 [~10/12]'. 표시가를 할인 전으로 보고 대관료×50% 를 뺀 값을 추정가로 병기 (2026-10-12까지 계약 조건)" },
+        { "항목": "대관료 N% 할인", "내용": "아펠가모 선릉·잠실 3~8월 '대관료 추가 50% 할인 [~10/12]'. 표시가를 할인 전으로 보고 대관료×50% 를 뺀 값을 추정가로 병기 (2026-10-12까지 계약 조건)" },
         { "항목": "총 예상 비용", "내용": "대관료 + 1인 식대×max(예상 하객, 보증인원) + 부대상품 − 할인" },
         { "항목": "주의", "내용": "VAT·주류 포함 여부와 필수 부대상품은 반영하지 않았습니다. 실제 상담에서 확인하세요." },
       ];
