@@ -5,6 +5,7 @@
   const HALLS = {
     lamer:     { name: "라메르홀", short: "라메르", cls: "M", gloss: "더채플앳논현 · La Mer", src: "https://thechapel.co.kr/ceremony/ceremonyResultList" },
     laforet:   { name: "라포레홀", short: "라포레", cls: "F", gloss: "더채플앳논현 · La Forêt", src: "https://thechapel.co.kr/ceremony/ceremonyResultList" },
+    daechi:    { name: "더채플앳대치", short: "대치", cls: "D", gloss: "더채플앳대치 · 대치점", src: "https://thechapel.co.kr/ceremony/ceremonyResultList" },
     seolleung: { name: "아펠가모 선릉", short: "선릉", cls: "S", gloss: "단독홀 4F · 한신인터밸리24", src: "https://www.apelgamo.com/ceremony/ceremonyResultList" },
   };
   const HALL_KEYS = Object.keys(HALLS);
@@ -27,6 +28,7 @@
     if (!l) return "";
     if (x.rentPct) return `대관료 ${x.rentPct}%↓` + (/숙박/.test(l) ? " · 숙박권" : "");
     if (/적용가/.test(l)) return "특별할인 적용가";
+    if (/시크릿/.test(l)) return "1주년 시크릿가";
     if (/금요일/.test(l)) return "금요일 상품";
     return l.split("│")[0].replace(/[^\p{L}\p{N}\s%·~()\/-]/gu, "").trim();
   }
@@ -285,7 +287,7 @@
       <div><dt>식대</dt><dd>${won(x.meal)}</dd></div>
       <div><dt>보증인원</dt><dd>${x.guar}명</dd></div>
       <div><dt>1인 식대</dt><dd>${won(x.per)}</dd></div>
-      <div class="wide"><dt>${x.disc != null ? `할인 추정가 (${esc(promoTag(x))})` : /적용가/.test(x.label || "") ? "대관료+식대 (특별할인 적용가)" : "대관료+식대"}</dt><dd>${won(x.disc ?? x.total)}</dd></div>`;
+      <div class="wide"><dt>${x.disc != null ? `할인 추정가 (${esc(promoTag(x))})` : /적용가|시크릿/.test(x.label || "") ? `대관료+식대 (${esc(promoTag(x))})` : "대관료+식대"}</dt><dd>${won(x.disc ?? x.total)}</dd></div>`;
     $("#sheet-memo").value = n.memo || "";
     syncSheet();
     $("#sheet").showModal();
@@ -467,6 +469,7 @@
   // ---------- send to wedding DB ----------
   async function sendQuote(id, btn) {
     const x = rows.find((r) => r.id === id); const n = note(id); const c = calc(x);
+    if (!CFG.VENUE_CODE[x.hall]) { toast(`${HALL[x.hall]}은 아직 웨딩 DB 웨딩홀 마스터에 없어요. 먼저 등록해 주세요.`); return; }
     if (!confirm(`${HALL[x.hall]} ${x.date} (${x.dow}) ${x.time} 슬롯을 웨딩 DB 견적으로 등록할까요?\n\n총 예상 비용 ${won(c.total)}원`)) return;
     btn.disabled = true; btn.textContent = "보내는 중…";
     try {
@@ -575,7 +578,7 @@
   // 요금 패턴의 시즌 — 8월까지는 달마다, 9~11월은 묶고, 이미 할인된 날·10% 혜택일은 따로 뗀다
   function seasonOf(x) {
     const m = +x.date.slice(5, 7);
-    if (/적용가/.test(x.label || "")) return m + "월 특별할인일";
+    if (/적용가|시크릿/.test(x.label || "")) return m + "월 특별할인일";
     if (x.promo) return m + "월 혜택일";
     return m <= 8 ? m + "월" : "9~11월";
   }

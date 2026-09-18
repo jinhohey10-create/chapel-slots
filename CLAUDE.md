@@ -1,6 +1,6 @@
 # chapel-slots — 작업 인수인계
 
-더채플앳논현 라메르홀·라포레홀(2027-05~11, 470건)과 아펠가모 선릉 웨딩홀 4층(2027-03~10, 354건)의 계약 가능 예식 슬롯 비교 웹. 예비 배우자와 함께 쓰는 용도.
+더채플앳논현 라메르홀·라포레홀(2027-05~11, 470건), 더채플앳대치 대치점(2027-06~11, 109건), 아펠가모 선릉 웨딩홀 4층(2027-03~10, 354건)의 계약 가능 예식 슬롯 비교 웹. 예비 배우자와 함께 쓰는 용도.
 
 **사용자가 쓰는 설정·데이터는 절대 건드리지 않는다**: `chapel_slot_notes`(★·비교·메모), 브라우저에 저장된 필터(`localStorage` 의 `nh-filter`). 데이터를 더할 때는 추가만 하고, 저장된 필터가 새 기본값을 이기는 구조를 유지한다.
 
@@ -11,11 +11,11 @@
 - 배포: Vercel 팀 FITI(`team_P7Tgr7hVnEB2623LzUhXkWrl`), 프로젝트 `chapel-slots` → https://chapel-slots.vercel.app
   - **2026-09-17 저장소 연결 완료. main 에 push 하면 자동 배포된다.** (그전에는 파일 직접 업로드 방식이었다)
 - DB: 웨딩 DB와 같은 Supabase 프로젝트 `qgwdzuemlacqotnxsupn` (공개 키는 config.js)
-  - `chapel_slots` (id 형식 `lamer-2027-11-20-1230`, 홀 = `lamer` / `laforet` / `seolleung` — CHECK 제약으로 제한): 홀, 날짜, 요일, 시간, 대관료, 식대 합계, 보증인원, 1인 식대, promo_10pct, promo_label(사이트 혜택 문구), likes(사이트 찜), is_available, collected_at
+  - `chapel_slots` (id 형식 `lamer-2027-11-20-1230`, 홀 = `lamer` / `laforet` / `daechi` / `seolleung` — CHECK 제약으로 제한): 홀, 날짜, 요일, 시간, 대관료, 식대 합계, 보증인원, 1인 식대, promo_10pct, promo_label(사이트 혜택 문구), likes(사이트 찜), is_available, collected_at
   - `chapel_slot_notes` (slot_id PK): picked, pick_order, expected_guests, extras(jsonb: flower/show/mc/snap/pyebaek/dress/etc), discount_override, starred, memo, sent_quote_code — Realtime 발행 대상
   - RLS는 기존 웨딩 DB처럼 anon 전체 허용(오픈). 로그인 없음.
 - 기존 웨딩 DB 앱: https://wedding-db-mu.vercel.app (GitHub `jinhohey10-create/wedding-db`)
-  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 선릉 V-006, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회)
+  - "견적으로 보내기" → `venue_quotes`에 다음 `Q-00N`으로 insert (라메르 V-008 / 라포레 V-003 / 선릉 V-006, `config.js` 의 `VENUE_CODE` → `venues.venue_code`로 조회. 대치는 웨딩 DB 에 아직 없어 `VENUE_CODE` 가 비어 있고, 보내기 전에 막는다)
   - 웨딩 DB 쪽 `venue_quotes`에 그 뒤 `valid_until`·`memo` 컬럼이 추가됐다(v7). 지금 insert 페이로드는 그대로 호환된다.
 
 ## 홀 추가하는 법
@@ -45,12 +45,13 @@
 
 ## 데이터·계산 규칙
 - 출처: thechapel.co.kr 스마트 예약 검색 결과(2026-09-17 수집, 조건: 논현 라메르/라포레, 2027-08-01~11-30, 하객 200~350명 / 5~7월은 2026-09-18 추가)
+- 더채플앳대치: thechapel.co.kr 스마트 예약 검색 결과(2026-09-18 수집, 조건: 대치점, 2027-06-01~11-30, 하객 200~400명)
 - 아펠가모 선릉: apelgamo.com 스마트 예약 검색 결과(2026-09-18 수집, 조건: 선릉 웨딩홀(4층), 2027-03-01~10-30, 토·일·금·주중공휴일, 전 시간대, 하객 100~400명). 11월은 검색 범위 밖이라 없다.
 - 식대 = 1인 식대 × 보증인원. 1인 식대는 역산.
 - 혜택 해석은 `app.js` 의 `rentPctOf` / `autoDisc` / `promoTag` 한곳에서 한다.
   - `promo_10pct` (더채플 10월 혜택일, 선릉 9~10월 계약가 10%): 표시가 = 할인 전 정가로 가정, 추정가 = (대관료+식대)×0.9
   - `promo_label` 에 "대관료 추가 N% 할인" (선릉 3~8월, [~10/12] = 2026-10-12까지 계약 조건): 같은 요일·시간·보증의 할인 없는 가을 대관료(682만)보다 봄·여름 표시가(517만)가 낮지 않으므로 할인 전 정가로 판단, 추정가 = 대관료+식대 − 대관료×N%
-  - "특별할인 적용가" (더채플 5/5·5/13): 이미 할인된 가격 → 추정가 없음
+  - "특별할인 적용가" (더채플 5/5·5/13), "1주년 시크릿 혜택 [~9/20]" (대치 6/26·27, 같은 달 혜택 없는 토요일보다 대관료가 낮음): 이미 할인된 가격 → 추정가 없음
   - "금요일 · 보증 150명" (선릉 금 18:30): 상품 설명일 뿐 → 추정가 없음
 - 총 예상 비용 = 대관료 + 1인 식대×max(예상 하객, 보증인원) + 부대상품 − 할인(비우면 `autoDisc` 추정 자동)
 - VAT·주류 포함 여부, 필수 부대상품은 미반영.
