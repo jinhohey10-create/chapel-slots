@@ -265,7 +265,7 @@
     $("#count").innerHTML = `<b>${r.length}</b>건 표시 · ${byHall} · ★ 후보 ${starred}`;
     $("#tbl tbody").innerHTML = r.length ? r.map((x) => { const n = note(x.id); return `<tr class="${n.picked ? "picked" : ""}">
       <td class="l"><button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button></td>
-      <td class="l"><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>${n.sent_quote_code ? ` <span class="sent">${esc(n.sent_quote_code)}</span>` : ""}</td><td class="l num">${x.date.replace(/-/g, ".")}</td><td class="l dow-${x.dow}">${x.dow}</td><td class="l num">${x.time}</td>
+      <td class="l"><span class="tag ${CLS[x.hall]}">${HALL[x.hall]}</span>${n.sent_quote_code ? ` <span class="sent">${esc(n.sent_quote_code)}</span>` : ""}${window.Travel?.chips(x) || ""}</td><td class="l num">${x.date.replace(/-/g, ".")}</td><td class="l dow-${x.dow}">${x.dow}</td><td class="l num">${x.time}</td>
       <td class="num">${won(x.rental)}</td><td class="num">${won(x.meal)}</td><td class="num">${x.guar}명</td><td class="num">${won(x.per)}</td>
       <td class="num ${x.disc != null ? "strike" : ""}">${won(x.total)}</td><td class="num">${x.disc != null ? `<span class="tag P">${esc(promoTag(x))}</span> ${won(x.disc)}` : x.label ? `<span class="tag P">${esc(promoTag(x))}</span>` : "–"}</td>
       <td class="num heart ${x.likes >= 3 ? "hot" : ""}">♥ ${x.likes}</td>
@@ -286,6 +286,7 @@
           <button class="star" data-id="${x.id}" aria-pressed="${n.starred}" aria-label="후보 표시">★</button>
         </div>
         <div class="c-when">${x.date.replace(/-/g, ".")} <span class="dow-${x.dow}">(${x.dow})</span><span class="t">${x.time}</span></div>
+        ${window.Travel?.chips(x) || ""}
         <dl class="c-money">
           <div><dt>대관료</dt><dd>${won(x.rental)}</dd></div>
           <div><dt>식대</dt><dd>${won(x.meal)}</dd></div>
@@ -659,6 +660,11 @@
       const cmp = cmpSheet();
       if (cmp) XLSX.utils.book_append_sheet(wb, cmp, "03_견적비교");
       XLSX.utils.book_append_sheet(wb, sheetFrom(patternList()), "04_요금패턴");
+      if (window.Travel?.ready) {
+        const t = window.Travel.sheets();
+        XLSX.utils.book_append_sheet(wb, sheetFrom(t.summary), "05_이동시간_요약");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(t.rows), "06_이동시간_원자료");
+      }
 
       XLSX.writeFile(wb, `예식슬롯_비교_${stamp}.xlsx`);
       toast(`엑셀로 내보냈어요 — 목록 ${shown.length}건${P.length ? ` · 비교 ${P.length}건` : ""}`);
@@ -680,5 +686,6 @@
     $("#pattern tbody").innerHTML = list.map((x) => `<tr><td class="l"><span class="tag ${CLS[x.h]}">${HALL[x.h]}</span></td><td class="l">${x.s}</td><td class="l">${x.d}</td><td class="l num">${x.t}</td><td class="num">${won(x.r)}</td><td class="num">${x.gu}명</td><td class="num">${won(x.p)}</td><td class="num">${won(x.r + x.p * x.gu)}</td><td class="num">${x.n}</td></tr>`).join("");
   }
 
+  window.addEventListener("travel-ready", () => { if (rows.length) render(); });
   load();
 })();

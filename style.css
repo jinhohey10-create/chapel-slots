@@ -268,3 +268,43 @@ details.panel summary{padding:14px 16px;cursor:pointer;font-weight:700}
 .sent{font-size:12px;color:var(--mer);font-weight:600}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:13px;z-index:10;max-width:calc(100% - 32px)}
 .loading{padding:40px 16px;text-align:center;color:var(--ink2)}
+
+/* ---------- 하객 이동시간 ---------- */
+.tt-ctl{display:flex;gap:10px;flex-wrap:wrap}
+.tt-body{overflow-x:auto;border-top:1px solid var(--line)}
+table.tt{min-width:560px}
+table.tt th small{display:block;font-size:10.5px;font-weight:500;color:var(--ink2)}
+table.tt td.l b{font-weight:600}
+table.tt td.l small{display:block;font-size:11px;color:var(--ink2)}
+table.tt td.l small.in{color:var(--mer);font-weight:600}
+.ttc{padding:0!important;text-align:center}
+.ttc button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;box-sizing:border-box;padding:7px 6px}
+.ttc button:hover,.ttc button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.ttc b{font-size:16px}
+.ttc span{font-size:11px;color:var(--ink2)}
+.ttc .dep{color:var(--ink)}
+table.tt td.sum{color:var(--ink2);font-size:12px}
+.tt-note{font-size:12px;color:var(--ink2);padding:10px 16px 14px;margin:0;line-height:1.6}
+.ttchip{display:inline-block;margin-top:4px;font-size:11.5px;color:var(--ink2);background:var(--surface2);
+  border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums;white-space:nowrap}
+td .ttchip{display:block;width:max-content}
+#tt-sheet{border:0;padding:0;background:transparent;max-width:min(640px,100%);width:100%}
+#tt-sheet::backdrop{background:rgba(10,15,20,.5)}
+#tt-title{flex:1;font-size:16px;font-weight:700;line-height:1.45}
+#tt-title small{display:block;font-size:12px;font-weight:500;color:var(--ink2)}
+.tt-rowsbox{max-height:none;border:1px solid var(--line);border-radius:8px}
+table.tt-rows{min-width:0}
+.tt-map{height:240px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);font-size:12px;color:var(--ink2);display:grid;place-items:center}
+.tt-map.leaflet-container{display:block}
+#tt-evid code{font-size:11px;background:var(--surface2);padding:1px 4px;border-radius:4px}
+@media (max-width:760px){
+  /* 폰: 출발지 세 칸이 한 화면에 들어오게 — 합계 칸은 숨기고 홀 이름을 줄바꿈 */
+  table.tt{min-width:0;table-layout:fixed}
+  table.tt th:last-child,table.tt td.sum{display:none}
+  table.tt th:first-child,table.tt td.l{width:34%;white-space:normal;font-size:12px;padding:7px 6px}
+  table.tt th{font-size:11.5px;padding:6px 3px;white-space:normal}
+  .ttc button{padding:6px 2px}
+  .ttc b{font-size:14px}
+  .ttc span{font-size:10px}
+  .tt-map{height:200px}
+}

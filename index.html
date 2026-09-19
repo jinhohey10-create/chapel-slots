@@ -75,6 +75,19 @@
     <div id="cmpbody"></div>
   </section>
 
+  <section class="panel" id="travel" aria-label="하객 이동시간">
+    <div class="cmp-head">
+      <h2>하객 이동시간 <span class="muted">자차 · 예식 30분 전 도착 기준</span></h2>
+      <div class="tt-ctl">
+        <div class="seg" id="tt-dow"><button data-v="토" aria-pressed="true">토</button><button data-v="일" aria-pressed="false">일</button></div>
+        <div class="seg" id="tt-cer"><button data-v="11:00" aria-pressed="false">11시</button><button data-v="12:00" aria-pressed="true">12시</button><button data-v="13:00" aria-pressed="false">13시</button><button data-v="14:00" aria-pressed="false">14시</button></div>
+      </div>
+    </div>
+    <div class="tt-body"><div class="loading">불러오는 중…</div></div>
+    <p class="tt-note">칸 안의 큰 숫자는 <b>9개 달의 중간값</b>(시:분), 아래는 가장 빠른~느린 달과 보통 출발 시각입니다. 색은 출발지마다 따로 매겨 초록일수록 그 출발지에서 가깝습니다. 칸을 누르면 달별 기록과 경로 지도, 조회 기록이 나옵니다.
+      <br><span id="tt-meta"></span> · 카카오모빌리티 미래 운행 정보(교통 패턴 예측)라 실제 당일 정체와는 다를 수 있습니다.</p>
+  </section>
+
   <details class="panel">
     <summary>요금 패턴 — 같은 조건이면 가격이 어떻게 달라지나</summary>
     <div class="tablebox" style="max-height:none"><table id="pattern" style="min-width:760px"><thead><tr>
@@ -97,6 +110,19 @@
     </ul>
   </section>
 </div>
+<dialog id="tt-sheet" aria-labelledby="tt-title">
+  <div class="sheet tt-sheet">
+    <header>
+      <div id="tt-title"></div>
+      <button type="button" class="sheet-x" id="tt-close" aria-label="닫기">✕</button>
+    </header>
+    <dl class="sheet-money" id="tt-sum"></dl>
+    <div class="tablebox tt-rowsbox"><table class="tt-rows"><thead><tr><th class="l">날짜</th><th>출발</th><th>도착</th><th>소요</th><th>거리</th><th>통행료</th></tr></thead><tbody id="tt-rows"></tbody></table></div>
+    <div id="tt-map" class="tt-map"></div>
+    <p class="sheet-hint" id="tt-mapcap"></p>
+    <p class="sheet-hint" id="tt-evid"></p>
+  </div>
+</dialog>
 <dialog id="sheet" aria-labelledby="sheet-title">
   <div class="sheet">
     <header>
@@ -117,6 +143,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="config.js"></script>
+<script src="travel.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
