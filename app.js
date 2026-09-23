@@ -361,6 +361,7 @@
   function renderCmp() {
     const box = $("#cmpbody"); const P = picks();
     $("#cmpcount").textContent = `${P.length}/${MAX_PICKS}`;
+    window.Tabs?.badge("compare", P.length);
     if (!P.length) { box.innerHTML = `<div class="empty">위 목록에서 <b>비교</b>를 눌러 슬롯을 추가하세요. 예: 같은 토요일의 라메르 12:30과 라포레 13:00.</div>`; return; }
     box.innerHTML = cmpTable(P) + cmpCards(P);
     updateCalc();

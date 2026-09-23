@@ -353,3 +353,19 @@ table.sn-st{min-width:960px}
   table.sn-st{min-width:860px}
   table.sn td.sn-wrap{min-width:110px}
 }
+
+/* ---------- 화면 탭 ---------- */
+.tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;
+  margin:-6px -16px 0;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{font:inherit;font-size:14px;font-weight:600;white-space:nowrap;border:1px solid transparent;
+  background:none;color:var(--ink2);padding:7px 14px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.tabs button:hover{color:var(--ink);background:var(--surface2)}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tabs .tb{font-size:11px;font-weight:700;min-width:17px;height:17px;padding:0 4px;border-radius:999px;
+  display:grid;place-items:center;background:var(--mer);color:#fff;font-variant-numeric:tabular-nums}
+.tabs button[aria-pressed="true"] .tb{background:var(--surface);color:var(--ink)}
+@media (max-width:760px){
+  .tabs{margin:-6px -16px 0;padding:8px 12px}
+  .tabs button{font-size:13px;padding:8px 12px}
+}

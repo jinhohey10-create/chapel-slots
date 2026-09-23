@@ -5,7 +5,7 @@
 **사용자가 쓰는 설정·데이터는 절대 건드리지 않는다**: `chapel_slot_notes`(★·비교·메모), 브라우저에 저장된 필터(`localStorage` 의 `nh-filter`). 데이터를 더할 때는 추가만 하고, 저장된 필터가 새 기본값을 이기는 구조를 유지한다.
 
 ## 구성
-- 순수 HTML/CSS/JS, 빌드 없음: `index.html`, `style.css`, `app.js`, `config.js`, `travel.js`, `snap.js`
+- 순수 HTML/CSS/JS, 빌드 없음: `index.html`, `style.css`, `app.js`, `config.js`, `tabs.js`, `travel.js`, `snap.js`
 - 로컬 경로: `바탕 화면/결혼/chapel-slots` — 웨딩 DB 폴더 안에 있지만 **별도 git 저장소**다(웨딩 DB 쪽 `.gitignore`가 제외 처리).
 - 저장소: GitHub `jinhohey10-create/chapel-slots`
 - 배포: Vercel 팀 FITI(`team_P7Tgr7hVnEB2623LzUhXkWrl`), 프로젝트 `chapel-slots` → https://chapel-slots.vercel.app
@@ -31,6 +31,10 @@
 - `/reserve_ins`, `/reserve_pick` 은 실제 계약·찜이다. 절대 호출하지 않는다.
 
 ## 화면 구성
+- **탭**(`tabs.js`): 맨 위 스티키 메뉴로 다섯 화면을 갈아 끼운다 — 슬롯 찾기(홀 요약 카드 + 필터·목록) / 견적 비교 / 하객 이동시간 / 스냅 견적 / 참고(요금 패턴 + 읽을 때 참고).
+  - `index.html` 의 **`.wrap` 바로 아래 요소에 `data-tab`** 을 달면 그 탭에 속한다. 기본값(슬롯만 보이고 나머지는 `hidden`)은 HTML 이 들고 있어서 JS 가 늦어도 깜빡이지 않는다.
+  - 보던 탭은 `localStorage` 의 `nh-tab`(슬롯 필터 `nh-filter` 와 별개). 주소의 `#tab-snap` 같은 해시가 저장값을 이기므로, 링크로 특정 탭을 바로 열어 보낼 수 있다.
+  - 견적 비교 탭의 개수 배지는 `renderCmp()` 가 `window.Tabs?.badge("compare", P.length)` 로 갱신한다.
 - **목록**: 데스크톱은 13열 표, 760px 아래에서는 카드(`renderCards`)로 바뀐다. 카드에서는 열 제목 정렬을 쓸 수 없어 정렬 드롭다운(`#f-sort`)을 따로 뒀다.
 - **슬롯 시트**(`#sheet` / `openSheet`): 행·카드의 `✎` 버튼으로 연다. ★ · 비교 추가 · 상담 메모가 한 화면에 있어 투어 현장에서 폰으로 바로 남길 수 있다. 비교에 넣지 않은 슬롯에도 메모를 쓸 수 있다.
 - **견적 비교**(`renderCmp`): 최대 4건. 부대상품·예상 하객·할인을 넣으면 총 예상 비용과 1인당 환산이 즉시 다시 계산된다.
