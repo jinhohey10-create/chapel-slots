@@ -5,7 +5,7 @@
 **사용자가 쓰는 설정·데이터는 절대 건드리지 않는다**: `chapel_slot_notes`(★·비교·메모), 브라우저에 저장된 필터(`localStorage` 의 `nh-filter`). 데이터를 더할 때는 추가만 하고, 저장된 필터가 새 기본값을 이기는 구조를 유지한다.
 
 ## 구성
-- 순수 HTML/CSS/JS, 빌드 없음: `index.html`, `style.css`, `app.js`, `config.js`
+- 순수 HTML/CSS/JS, 빌드 없음: `index.html`, `style.css`, `app.js`, `config.js`, `travel.js`, `snap.js`
 - 로컬 경로: `바탕 화면/결혼/chapel-slots` — 웨딩 DB 폴더 안에 있지만 **별도 git 저장소**다(웨딩 DB 쪽 `.gitignore`가 제외 처리).
 - 저장소: GitHub `jinhohey10-create/chapel-slots`
 - 배포: Vercel 팀 FITI(`team_P7Tgr7hVnEB2623LzUhXkWrl`), 프로젝트 `chapel-slots` → https://chapel-slots.vercel.app
@@ -70,3 +70,15 @@
 - 같은 해의 일반 주말은 날짜를 바꿔도 값이 같다(요일·시간 패턴값). 그래서 표본은 실제 예식 기간(2027년 3~11월)의 달별 주말로 잡았다.
 - 데이터는 DB 가 아니라 정적 파일: data/travel_times.json(meta + rows), data/travel_routes.json(대표 경로 좌표, 2027-05-15 토 12시 예식 조건), data/travel_raw.jsonl(모든 API 호출의 요청·응답 요약 = 근거).
 - 화면: 히트맵(출발지별로 따로 색), 칸을 누르면 달별 기록·경로 지도(Leaflet + OSM)·조회 ID. 슬롯 표·카드에는 같은 달·같은 요일·가까운 예식 시각(±30분 이내)의 값이 칩으로 붙는다. 엑셀에 05_이동시간_요약 / 06_이동시간_원자료 시트.
+
+## 스냅 견적 (snap.js)
+- 야외 스냅 촬영 견적이 어떤 항목으로 쪼개지는지, 서울 작가를 지방으로 부르면 얼마가 붙는지 조사한 결과. 슬롯과 무관한 독립 섹션이라 DB 도 Supabase 도 안 쓴다.
+- 데이터는 정적 파일 `data/snap.json`: 지역별 출장비(21개 업체 × 42개 지역 762행), 야외·제주 스냅 상품가, 다이렉트결혼준비 9월 스드메 표 스튜디오 23곳의 추가비용, 패키지에 안 들어가는 고정비.
+- 출처·해설·근거는 `docs/야외스냅-견적-리서치.md`, 원자료 CSV 는 `docs/data/`. 2026-09-22 수집.
+  - 출장비는 오딩(oding.co.kr) 상품 페이지의 `POST /getProdTravel` 응답. 같은 업체가 본식·야외·영상 상품에 같은 표를 쓴다.
+  - 스튜디오 추가비용은 directwedding.co.kr 업체 페이지의 '상품 소개' 블록.
+  - **제주는 어느 업체 출장비 표에도 없다.** 항공·숙박이 붙는 개별 견적이라 그렇고, 대신 제주 현지 작가 정찰제를 따로 실었다.
+- 화면: 섹션 `#snap` 안에서 [지역별 출장비 / 야외스냅 상품 / 스튜디오 추가비용] 세 뷰를 갈아 끼운다. 보던 뷰·지역·촬영비는 `localStorage` 의 `snap-view` 에 저장(슬롯 필터 `nh-filter` 와 별개). 엑셀에 07~09 시트.
+- 표 셀에 `class="wrap"` 을 쓰면 안 된다 — `.wrap` 은 페이지 전체 컨테이너 클래스다. 줄바꿈은 `sn-wrap`.
+- `data/snap.json` 의 스튜디오·고정비 문자열에는 `<b>` 강조가 들어 있고, `rich()` 가 이스케이프한 뒤 `<b>` 만 되살린다. 다른 태그를 넣어도 안 먹는다.
+- 모바일에서 `.tablebox` 는 전역으로 숨겨지지만(슬롯은 카드로 대체) 스냅 표는 `.sn-box` 규칙으로 다시 켜서 가로 스크롤로 본다.

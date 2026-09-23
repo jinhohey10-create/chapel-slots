@@ -308,3 +308,48 @@ table.tt-rows{min-width:0}
   .ttc span{font-size:10px}
   .tt-map{height:200px}
 }
+
+/* ---------- 스냅 견적 ---------- */
+.sn-body{border-top:1px solid var(--line)}
+.sn-ctl{display:flex;gap:16px 22px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px}
+.sn-shoot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.sn-num{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink2)}
+.sn-num input{font:inherit;font-size:13px;width:72px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;
+  background:var(--surface);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.sn-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 14px}
+.sn-sum > div{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.sn-sum > div.hi{border-color:var(--ink);background:var(--surface)}
+.sn-sum dt{font-size:11px;color:var(--ink2);font-weight:600}
+.sn-sum dd{margin:3px 0 0;font-size:21px;font-weight:700}
+.sn-sum small{display:block;font-size:11px;color:var(--ink2);margin-top:3px}
+.sn-box{max-height:none}
+table.sn{min-width:640px}
+table.sn td{vertical-align:top}
+table.sn td.l small{display:block;font-size:11px;color:var(--ink2);font-weight:400;margin-top:2px}
+table.sn td.sn-wrap{white-space:normal;min-width:120px;line-height:1.55}
+table.sn td.strong{font-weight:700}
+/* 가로로 밀어 볼 때 업체 이름은 붙잡아 둔다 */
+table.sn th:first-child{left:0;z-index:3}
+table.sn tbody td:first-child{position:sticky;left:0;background:var(--surface);z-index:2}
+table.sn tbody tr:hover td:first-child{background:var(--surface2)}
+table.sn td.zero{color:var(--ink2)}
+table.sn td.sn-p{max-width:260px;white-space:normal}
+table.sn th{cursor:default}
+tr.sn-tier td{background:var(--surface2);font-size:11.5px;font-weight:600;color:var(--ink2);
+  letter-spacing:.02em;text-align:left;position:sticky;left:0}
+table.sn-st{min-width:960px}
+.sn-cap{padding:14px 16px 8px;font-size:12px;font-weight:600;color:var(--ink2)}
+.sn-note,.sn-foot{font-size:12px;color:var(--ink2);padding:10px 16px 14px;margin:0;line-height:1.6}
+.sn-foot{border-top:1px dashed var(--line)}
+@media (max-width:760px){
+  .sn-box{display:block}          /* 슬롯 표와 달리 스냅 표는 폰에서도 가로로 밀어 본다 */
+  .sn-sum{grid-template-columns:1fr;gap:8px}
+  .sn-sum dd{font-size:19px}
+  .sn-ctl{padding:12px 13px;gap:14px}
+  .sn-cap{padding:12px 13px 6px}
+  .sn-note,.sn-foot{padding:10px 13px 14px}
+  table.sn{min-width:560px}
+  table.sn-st{min-width:860px}
+  table.sn td.sn-wrap{min-width:110px}
+}

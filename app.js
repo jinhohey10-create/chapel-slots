@@ -665,6 +665,12 @@
         XLSX.utils.book_append_sheet(wb, sheetFrom(t.summary), "05_이동시간_요약");
         XLSX.utils.book_append_sheet(wb, sheetFrom(t.rows), "06_이동시간_원자료");
       }
+      if (window.Snap?.ready) {
+        const s = window.Snap.sheets();
+        XLSX.utils.book_append_sheet(wb, sheetFrom(s.travel), "07_스냅_지역별출장비");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(s.products), "08_스냅_상품가");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(s.studios), "09_스튜디오_추가비용");
+      }
 
       XLSX.writeFile(wb, `예식슬롯_비교_${stamp}.xlsx`);
       toast(`엑셀로 내보냈어요 — 목록 ${shown.length}건${P.length ? ` · 비교 ${P.length}건` : ""}`);
