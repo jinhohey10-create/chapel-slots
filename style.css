@@ -384,3 +384,7 @@ tr.dr-tier td{background:var(--surface2);font-size:11.5px;font-weight:600;color:
 .dr-price small{display:block;font-size:10.5px;font-weight:400;color:var(--ink2)}
 .dr-price .dr-sec{display:block;margin-top:4px;color:var(--ink2);font-size:13px}
 @media (max-width:760px){ table.dr{min-width:780px} }
+.dc-checks{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.dr-ig{display:block;font-size:11.5px;margin-top:3px;text-decoration:none}
+.dr-ig:hover{text-decoration:underline}
+tr.dc-total td{background:var(--surface2);font-weight:700;border-top:2px solid var(--line)}

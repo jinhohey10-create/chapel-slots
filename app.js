@@ -674,7 +674,8 @@
       }
       if (window.Dress?.ready) {
         const dr = window.Dress.sheets();
-        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.shops), "10_드레스_샵별");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.calc), "10_드레스_견적계산");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.shops), "10b_드레스_샵별");
         XLSX.utils.book_append_sheet(wb, sheetFrom(dr.fees), "11_드레스_추가금");
         XLSX.utils.book_append_sheet(wb, sheetFrom(dr.market), "12_드레스_시세");
       }
