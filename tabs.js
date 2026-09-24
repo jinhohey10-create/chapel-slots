@@ -2,7 +2,7 @@
 // index.html 의 `data-tab` 이 붙은 최상위 요소를 켜고 끄는 게 전부다.
 // 기본값은 HTML 이 들고 있어(슬롯만 보이고 나머지는 hidden) JS 가 늦어도 화면이 깜빡이지 않는다.
 (() => {
-  const KEYS = ["slots", "compare", "travel", "snap", "notes"];
+  const KEYS = ["slots", "compare", "travel", "snap", "dress", "notes"];
   const nav = document.getElementById("tabs"); if (!nav) return;
   const panels = [...document.querySelectorAll("[data-tab]")].filter((el) => el.parentElement.classList.contains("wrap"));
 

@@ -672,6 +672,12 @@
         XLSX.utils.book_append_sheet(wb, sheetFrom(s.products), "08_스냅_상품가");
         XLSX.utils.book_append_sheet(wb, sheetFrom(s.studios), "09_스튜디오_추가비용");
       }
+      if (window.Dress?.ready) {
+        const dr = window.Dress.sheets();
+        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.shops), "10_드레스_샵별");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.fees), "11_드레스_추가금");
+        XLSX.utils.book_append_sheet(wb, sheetFrom(dr.market), "12_드레스_시세");
+      }
 
       XLSX.writeFile(wb, `예식슬롯_비교_${stamp}.xlsx`);
       toast(`엑셀로 내보냈어요 — 목록 ${shown.length}건${P.length ? ` · 비교 ${P.length}건` : ""}`);
